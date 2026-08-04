@@ -78,12 +78,14 @@ export default function Login() {
     <div className="login-form-wrap">
       <h1 className="login-title">Welcome Back</h1>
       <p className="login-subtitle">
-        lorem iopsum doler smit amet du frics in shileken kreel;
+        Log in to pick up right where you left off
         <br />
-        morluto benoil ceno lin drab ti dunken
+        your wishlists are waiting for you.
       </p>
 
       <GoogleButton label="Continue with Google" />
+
+      <div className="login-divider">or continue with email</div>
 
       <form className="login-form" onSubmit={handleSubmit} noValidate>
         <div className="login-field">

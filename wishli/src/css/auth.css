@@ -187,29 +187,91 @@
 
 /* ------------------------------------------------------------- narrow --- */
 
-/* No room for the artwork, so no wipe to hang the transition on — the panes
-   cross-fade in place instead. */
+/* No room for the artwork's sliding wipe, so the panes push-slide past each
+   other horizontally instead — outgoing to the left, incoming in from the
+   right — while the portrait itself stays put in its own row above them. */
 @media (max-width: 900px) {
-  .auth-art {
+  .auth {
+    grid-template-rows: auto 1fr;
+    background: radial-gradient(120% 46% at 50% 0%, #f1f1fa 0%, #ffffff 60%);
+  }
+
+  /* A floating corner mark just competes with the portrait for attention at
+     this size — the portrait + heading already read as the brand here. */
+  .auth-logo {
     display: none;
   }
 
-  .auth-logo {
-    --logo-size: 88px;
+  .auth-art {
+    position: relative;
+    top: 0;
+    left: 0;
+    grid-row: 1;
+    width: clamp(112px, 30vw, 156px);
+    height: clamp(112px, 30vw, 156px);
+    aspect-ratio: 1 / 1;
+    margin: max(36px, env(safe-area-inset-top) + 20px) auto 0;
+  }
+
+  .auth-art-frame {
+    border-radius: 50%;
+    box-shadow:
+      0 0 0 4px #fff,
+      0 0 0 7px rgba(122, 134, 222, 0.25),
+      0 20px 30px -16px rgba(20, 20, 26, 0.45);
+  }
+
+  /* Sized to the mask's own 735x980 aspect (not stretched to the square
+     circle) so it isn't distorted, then clipped to just the puffs — the
+     stems and swing lower down are already visible inside the frame image;
+     this layer's only job is to let the two dandelion heads spill past the
+     rim above it, not to repeat the rest of the scene outside the circle.
+
+     The offsets have to match the frame's own crop exactly or the two
+     layers drift apart. The frame is object-fit: cover on a *square* box
+     from a 633x980 source — width is the binding constraint (633 < 980),
+     so it renders as an exact 633-wide scale and center-crops a 633x633
+     window out of the 980-tall image: (980-633)/2 = 173.5px off the top
+     and bottom alike. So relative to the circle:
+       top    = -173.5/633 = -27.409%  (desktop uses 0% — its frame box
+                                         matches the source's aspect ratio
+                                         exactly, so nothing is cropped)
+       height =  980/633   = 154.818%
+     left/width are unchanged from desktop (-10.111% / 116.114%): the
+     width is never cropped in either layout, so that math already carried
+     over as-is. */
+  .auth-art-pop {
+    top: -27.409%;
+    left: -10.111%;
+    width: 116.114%;
+    height: 154.818%;
+    object-fit: fill;
+    /* Keeps roughly the top 57% of the mask (the two puffs) and drops the
+       rest (stems, swing, girl) — those are already visible inside the
+       frame, so this just avoids re-rendering a second, easy-to-misalign
+       copy of them past the rim. */
+    clip-path: inset(0 0 43% 0);
   }
 
   .auth-pane {
-    padding: 88px 24px 48px;
+    grid-row: 2;
+    align-items: flex-start;
+    padding: 22px 22px max(40px, env(safe-area-inset-bottom) + 22px);
     clip-path: none;
-    transition: opacity 400ms ease;
   }
 
+  /* Pure calc()s off --slide, so both directions fall out for free: as
+     --slide runs 0->1 (login->signup), login's translateX runs 0 -> -100%
+     (exits left) while signup's runs 100% -> 0 (enters from the right).
+     Run --slide back 1->0 and the same expressions play in reverse — login
+     re-enters from the left, signup exits to the right — with no separate
+     "which direction" logic needed. */
   .auth-pane--login {
-    opacity: calc(1 - var(--slide));
+    transform: translateX(calc(var(--slide) * -100%));
   }
 
   .auth-pane--signup {
-    opacity: var(--slide);
+    transform: translateX(calc((1 - var(--slide)) * 100%));
   }
 
   .auth-pane .login-form-wrap {

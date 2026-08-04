@@ -108,12 +108,14 @@ export default function Signup() {
     <div className="login-form-wrap login-form-wrap--signup">
       <h1 className="login-title">Create Account</h1>
       <p className="login-subtitle">
-        lorem iopsum doler smit amet du frics in shileken kreel;
+        Join Wishli and start building wishlists
         <br />
-        morluto benoil ceno lin drab ti dunken
+        you can share with the people who matter most.
       </p>
 
       <GoogleButton label="Sign up with Google" />
+
+      <div className="login-divider">or continue with email</div>
 
       <form className="login-form" onSubmit={handleSubmit} noValidate>
         <div className="login-field">
