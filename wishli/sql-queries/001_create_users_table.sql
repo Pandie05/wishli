@@ -139,3 +139,91 @@ $$;
 
 revoke all on function public.email_for_login(text) from public;
 grant execute on function public.email_for_login(text) to anon, authenticated;
+
+
+-- ----------------------------------------------------------------------------
+-- Create Wishlists Table
+-- ----------------------------------------------------------------------------
+create table wishlists (
+  wishlist_id uuid primary key default gen_random_uuid(),
+  id uuid not null references users(id) on delete cascade,
+  name text not null,
+  item_img text,
+  budget decimal,
+  created_at timestamptz not null default now()
+);
+-- ----------------------------------------------------------------------------
+
+
+-- ----------------------------------------------------------------------------
+-- Create Items Table
+-- ----------------------------------------------------------------------------
+create table items (
+  item_id uuid primary key default gen_random_uuid(),
+  wishlist_id uuid not null references wishlists(wishlist_id) on delete cascade,
+  added_by_user_id uuid not null references users(id) on delete cascade,
+  name text not null,
+  product_url text,
+  image_url text,
+  price decimal,
+  notes text,
+  purchased boolean not null default false,
+  added_at timestamptz not null default now()
+);
+-- ----------------------------------------------------------------------------
+
+
+-- ----------------------------------------------------------------------------
+-- Create Wishlist Members Table
+-- ----------------------------------------------------------------------------
+create table wishlist_members (
+  member_id uuid primary key default gen_random_uuid(),
+  wishlist_id uuid not null references wishlists(wishlist_id) on delete cascade,
+  user_id uuid not null references users(id) on delete cascade,
+  role text not null default 'viewer',
+  joined_at timestamptz not null default now()
+);
+-- ----------------------------------------------------------------------------
+
+
+-- ----------------------------------------------------------------------------
+-- Create Friend Requests Table
+-- ----------------------------------------------------------------------------
+create table friend_requests (
+  request_id uuid primary key default gen_random_uuid(),
+  sender_id uuid not null references users(id) on delete cascade,
+  receiver_id uuid not null references users(id) on delete cascade,
+  status text not null default 'pending',
+  created_at timestamptz not null default now()
+);
+-- ----------------------------------------------------------------------------
+
+
+-- ----------------------------------------------------------------------------
+-- Create Notifications Table
+-- ----------------------------------------------------------------------------
+create table notifications (
+  notification_id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  sender_id uuid references users(id) on delete set null,
+  wishlist_id uuid references wishlists(wishlist_id) on delete cascade,
+  type text not null,
+  message text,
+  is_read boolean not null default false,
+  created_at timestamptz not null default now()
+);
+-- ----------------------------------------------------------------------------
+
+
+-- ----------------------------------------------------------------------------
+-- Create Verification Code Table
+-- ----------------------------------------------------------------------------
+create table verification_codes (
+  code_id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  code text not null,
+  expires_at timestamptz not null,
+  used boolean not null default false,
+  created_at timestamptz not null default now()
+);
+-- ----------------------------------------------------------------------------
