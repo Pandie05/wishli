@@ -1,0 +1,164 @@
+/* The credential column — shared by the login and sign up panes.
+ * The palette variables it reads live on `.auth` in auth.css. */
+
+.login-form-wrap {
+  width: 100%;
+  max-width: clamp(360px, 38vw, 520px);
+}
+
+.login-title {
+  margin: 0 0 16px;
+  font-size: clamp(38px, 3.2vw, 52px);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.7px;
+  text-align: center;
+  color: var(--login-heading);
+}
+
+.login-subtitle {
+  margin: 0 0 30px;
+  font-size: 15px;
+  line-height: 1.9;
+  text-align: center;
+  color: var(--login-muted);
+}
+
+/* ------------------------------------------------------ google (fake) --- */
+
+.login-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  height: 56px;
+  padding: 0 18px;
+  border: 1px solid var(--login-border);
+  border-radius: 9px;
+  background: #fff;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  color: #3d3d47;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.login-google:hover {
+  background: #fafafc;
+}
+
+.login-google svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+
+/* ---------------------------------------------------------------- form --- */
+
+.login-form {
+  margin-top: 28px;
+}
+
+.login-field {
+  margin-bottom: 20px;
+}
+
+.login-field label {
+  display: block;
+  margin-bottom: 9px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--login-label);
+}
+
+.login-field input {
+  display: block;
+  width: 100%;
+  height: 56px;
+  padding: 0 18px;
+  border: 1px solid var(--login-border);
+  border-radius: 9px;
+  background: #fff;
+  font: inherit;
+  font-size: 16px;
+  color: var(--login-heading);
+  transition: border-color 0.15s ease;
+}
+
+.login-field input::placeholder {
+  color: var(--login-placeholder);
+}
+
+.login-field input:focus {
+  outline: none;
+  border-color: var(--login-accent);
+}
+
+.login-error,
+.login-notice {
+  margin: 0 0 16px;
+  font-size: 14px;
+}
+
+.login-error {
+  color: #d24a52;
+}
+
+.login-notice {
+  color: #3f8f6b;
+}
+
+.login-submit {
+  display: block;
+  width: 100%;
+  height: 56px;
+  margin-top: 14px;
+  border: none;
+  border-radius: 9px;
+  background: var(--login-accent);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.login-submit:hover:not(:disabled) {
+  background: var(--login-accent-hover);
+}
+
+.login-submit:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
+/* -------------------------------------------------------------- footer --- */
+
+.login-footer {
+  margin: 26px 0 0;
+  font-size: 15px;
+  text-align: center;
+  color: var(--login-label);
+}
+
+.login-footer a {
+  color: var(--login-accent);
+  text-decoration: none;
+}
+
+.login-footer a:hover {
+  text-decoration: underline;
+}
+
+/* Sign up has four fields, so its column needs tighter vertical rhythm to
+   stay off the fold on a laptop screen. */
+.login-form-wrap--signup .login-subtitle {
+  margin-bottom: 24px;
+}
+
+.login-form-wrap--signup .login-field {
+  margin-bottom: 14px;
+}

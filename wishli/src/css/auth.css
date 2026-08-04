@@ -1,0 +1,218 @@
+/* Auth shell — the sliding artwork that wipes between login and sign up.
+ *
+ * Everything is driven by one animated number, --slide (0 = login, 1 = sign
+ * up). The artwork's position, the wipe that covers the outgoing form, and the
+ * wipe that reveals the incoming one are all calc()'d from it, so the clip
+ * edges stay welded to the image's edges for the whole transition instead of
+ * merely running for the same duration.
+ *
+ * Registering it with @property is what makes it animatable — an unregistered
+ * custom property is just a token stream and would snap from 0 to 1.
+ */
+@property --slide {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+.auth {
+  /* Palette — shared with the credential form styles in login.css. */
+  --login-accent: #7a86de;
+  --login-accent-hover: #6975d2;
+  --login-border: #e3e3ea;
+  --login-heading: #14141a;
+  --login-label: #44444f;
+  --login-muted: #9b9ba7;
+  --login-placeholder: #b6b6c1;
+
+  /* The frame keeps login-image.png's own 633x980 ratio so the photo is never
+     cropped and the cut-out overlay stays registered to it. Deriving the width
+     from the height keeps the slide distance computable below. */
+  --art-gap: 26px;
+  --art-h: calc(100svh - var(--art-gap) * 2);
+  --art-w: calc(var(--art-h) * 633 / 980);
+
+  --slide: 0;
+  transition: --slide 900ms cubic-bezier(0.76, 0, 0.24, 1);
+
+  position: relative;
+  /* Both panes share one grid cell so they overlap while still sizing the
+     row — a taller form grows the page and scrolls instead of being cut off. */
+  display: grid;
+  grid-template-columns: 1fr;
+  min-height: 100svh;
+  background: #fff;
+  color: var(--login-heading);
+  font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  letter-spacing: normal;
+  text-align: left;
+  box-sizing: border-box;
+
+  /* The artwork deliberately overhangs its frame. Clip that rather than let it
+     make a horizontal scrollbar — `clip` (unlike `hidden`) leaves vertical
+     scrolling on the page itself. */
+  overflow-x: clip;
+}
+
+.auth[data-mode='signup'] {
+  --slide: 1;
+}
+
+.auth *,
+.auth *::before,
+.auth *::after {
+  box-sizing: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth {
+    transition-duration: 1ms;
+  }
+}
+
+/* ---------------------------------------------------------------- logo --- */
+
+/* logo.png is a 148px canvas with the mark inset ~30% on each side, so the box
+   has to be much larger than the mark you actually see.
+ *
+ * It rides the same --slide and swaps sides with the artwork, travelling the
+ * opposite way so it always sits over the form rather than over the photo.
+ * z-index puts it above the panes but *below* the artwork, so mid-transition
+ * it ducks behind the image as the two cross instead of becoming an invisible
+ * black mark on a night sky. */
+.auth-logo {
+  --logo-size: 104px;
+  --logo-edge: 8px;
+
+  position: absolute;
+  z-index: 1;
+  top: 4px;
+  left: calc(
+    var(--logo-edge) + (1 - var(--slide)) *
+      (100% - var(--logo-size) - var(--logo-edge) * 2)
+  );
+  width: var(--logo-size);
+  height: var(--logo-size);
+  object-fit: contain;
+}
+
+/* --------------------------------------------------------------- panes --- */
+
+.auth-pane {
+  grid-area: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 48px 40px;
+}
+
+/* Login lives in the strip to the right of the artwork's home position. As the
+   image slides right it swallows the form left-to-right: --cover-x tracks the
+   image's leading edge, ending at 100% so nothing survives in the margin. */
+.auth-pane--login {
+  --cover-x: calc(
+    var(--art-gap) + var(--art-w) + var(--slide) *
+      (100% - var(--art-gap) - var(--art-w))
+  );
+
+  padding-left: calc(var(--art-gap) * 2 + var(--art-w));
+  clip-path: inset(0 0 0 var(--cover-x));
+}
+
+/* Sign up lives in the strip the artwork vacates. --reveal-x tracks the
+   image's trailing edge, so the form is uncovered by the passing edge rather
+   than fading in underneath it. */
+.auth-pane--signup {
+  --reveal-x: calc(var(--slide) * (100% - var(--art-w) - var(--art-gap)));
+
+  padding-right: calc(var(--art-gap) * 2 + var(--art-w));
+  clip-path: inset(0 calc(100% - var(--reveal-x)) 0 0);
+}
+
+/* A little momentum: the outgoing column gets shoved along by the image, the
+   incoming one settles into place behind it. */
+.auth-pane--login .login-form-wrap {
+  transform: translateX(calc(var(--slide) * 40px));
+}
+
+.auth-pane--signup .login-form-wrap {
+  transform: translateX(calc((1 - var(--slide)) * -40px));
+}
+
+/* ------------------------------------------------------------- artwork --- */
+
+.auth-art {
+  position: absolute;
+  z-index: 2;
+  top: var(--art-gap);
+  left: calc(
+    var(--art-gap) + var(--slide) *
+      (100% - var(--art-w) - var(--art-gap) * 2)
+  );
+  width: var(--art-w);
+  height: var(--art-h);
+}
+
+.auth-art-frame {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.auth-art-frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* login-image-mask.png is the same art at 1:1 with the background cut away.
+   It is 735x980 against the base's 633x980 and sits at x = -64, so the
+   dandelions spill past both edges of the rounded frame.
+     left  = -64 / 633 = -10.111%
+     width =  735 / 633 = 116.114% */
+.auth-art-pop {
+  position: absolute;
+  top: 0;
+  left: -10.111%;
+  width: 116.114%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------- narrow --- */
+
+/* No room for the artwork, so no wipe to hang the transition on — the panes
+   cross-fade in place instead. */
+@media (max-width: 900px) {
+  .auth-art {
+    display: none;
+  }
+
+  .auth-logo {
+    --logo-size: 88px;
+  }
+
+  .auth-pane {
+    padding: 88px 24px 48px;
+    clip-path: none;
+    transition: opacity 400ms ease;
+  }
+
+  .auth-pane--login {
+    opacity: calc(1 - var(--slide));
+  }
+
+  .auth-pane--signup {
+    opacity: var(--slide);
+  }
+
+  .auth-pane .login-form-wrap {
+    transform: none;
+  }
+}
