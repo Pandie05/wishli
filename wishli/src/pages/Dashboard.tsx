@@ -15,6 +15,7 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const [userId, setUserId] = useState<string | null>(null)
   const [wishlists, setWishlists] = useState<Wishlist[]>([])
+  const [itemCounts, setItemCounts] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
 
   const [name, setName] = useState('')
@@ -40,9 +41,18 @@ export default function Dashboard() {
         .eq('id', user.id)
         .order('created_at', { ascending: false })
 
+      // rls on items already scopes this to items on wishlists you own
+      const { data: itemRows } = await supabase.from('items').select('wishlist_id')
+
+      const counts: Record<string, number> = {}
+      for (const item of itemRows ?? []) {
+        counts[item.wishlist_id] = (counts[item.wishlist_id] ?? 0) + 1
+      }
+
       if (!cancelled) {
         setUserId(user.id)
         if (!fetchError) setWishlists(rows ?? [])
+        setItemCounts(counts)
         setLoading(false)
       }
     }
@@ -97,6 +107,7 @@ export default function Dashboard() {
   if (loading) return <p>Loading...</p>
 
   const totalBudget = wishlists.reduce((sum, w) => sum + (w.budget ?? 0), 0)
+  const totalItems = Object.values(itemCounts).reduce((sum, c) => sum + c, 0)
 
   return (
     <div className="dash">
@@ -117,8 +128,7 @@ export default function Dashboard() {
           <span className="dash-stat-label">budget</span>
         </div>
         <div className="dash-stat">
-          {/* items table has no rls yet, wire this up once add-item exists */}
-          <span className="dash-stat-value">0</span>
+          <span className="dash-stat-value">{totalItems}</span>
           <span className="dash-stat-label">items</span>
         </div>
       </div>
@@ -146,7 +156,12 @@ export default function Dashboard() {
       <ul className="dash-list">
         {wishlists.map((w) => (
           <li key={w.wishlist_id} className="dash-list-item">
-            <Link to={`/wishlist/${w.wishlist_id}`}>{w.name}</Link>
+            <span>
+              <Link to={`/wishlist/${w.wishlist_id}`}>{w.name}</Link>
+              <span className="dash-list-item-count">
+                {itemCounts[w.wishlist_id] ?? 0} items
+              </span>
+            </span>
             {w.budget != null && <span>${w.budget}</span>}
           </li>
         ))}

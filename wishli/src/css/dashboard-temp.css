@@ -77,6 +77,12 @@ TO BE DELETED AND STYLED BY JAYDEN
   border-radius: 8px;
 }
 
+.dash-list-item-count {
+  margin-left: 0.5rem;
+  font-size: 0.8rem;
+  color: #999;
+}
+
 .dash-empty {
   color: #999;
   padding: 0.75rem 1rem;
