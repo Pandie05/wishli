@@ -66,7 +66,7 @@ export default function Login() {
         return
       }
 
-      navigate('/home', { replace: true })
+      navigate('/dashboard', { replace: true })
     } catch {
       setError('Could not reach the server. Please try again.')
     } finally {
@@ -78,7 +78,7 @@ export default function Login() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google', // Tells Supabase to route through Google APIs
       options: {
-        redirectTo: `${window.location.origin}/home`, // Redirect to /home after successful login
+        redirectTo: `${window.location.origin}/dashboard`, // Redirect to /dashboard after successful login
       },
     });
     

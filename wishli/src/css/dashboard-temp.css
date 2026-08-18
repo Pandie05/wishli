@@ -1,0 +1,89 @@
+/* throwaway styling, delete once the real dashboard design lands
+
+TO BE DELETED AND STYLED BY JAYDEN
+
+*/
+
+.dash {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  font-family: system-ui, sans-serif;
+}
+
+.dash-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.dash-stats {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.dash-stat {
+  display: flex;
+  flex-direction: column;
+  padding: 0.75rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.dash-stat-value {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.dash-stat-label {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.dash-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.dash-form input {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.dash-error {
+  color: #c0392b;
+  margin-bottom: 1rem;
+}
+
+.dash-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.dash-list-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border: 1px solid #eee;
+  border-radius: 8px;
+}
+
+.dash-list-item-count {
+  margin-left: 0.5rem;
+  font-size: 0.8rem;
+  color: #999;
+}
+
+.dash-empty {
+  color: #999;
+  padding: 0.75rem 1rem;
+}
