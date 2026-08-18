@@ -161,7 +161,7 @@ create table wishlists (
 create table items (
   item_id uuid primary key default gen_random_uuid(),
   wishlist_id uuid not null references wishlists(wishlist_id) on delete cascade,
-  added_by_user_id uuid not null references users(id) on delete cascade,
+  user_id uuid not null references users(id) on delete cascade,
   name text not null,
   product_url text,
   image_url text,

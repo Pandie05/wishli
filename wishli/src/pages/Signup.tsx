@@ -93,7 +93,7 @@ export default function Signup() {
 
       // No session means email confirmation is switched on for the project.
       if (data.session) {
-        navigate('/home', { replace: true })
+        navigate('/dashboard', { replace: true })
       } else {
         setNotice('Check your email to confirm your account, then log in.')
       }
@@ -108,7 +108,7 @@ export default function Signup() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google', // Tells Supabase to route through Google APIs
         options: {
-          redirectTo: `${window.location.origin}/home`, // Redirect to /home after successful login
+          redirectTo: `${window.location.origin}/dashboard`, // Redirect to /dashboard after successful login
         },
       });
       

@@ -1,0 +1,54 @@
+/* throwaway styling, delete once the real wishlist detail design lands
+
+TO BE DELETED AND STYLED BY JAYDEN
+
+*/
+
+.wl-detail {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  font-family: system-ui, sans-serif;
+}
+
+.wl-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.wl-form input {
+  flex: 1;
+  min-width: 140px;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.wl-error {
+  color: #c0392b;
+  margin-bottom: 1rem;
+}
+
+.wl-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.wl-list-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border: 1px solid #eee;
+  border-radius: 8px;
+}
+
+.wl-empty {
+  color: #999;
+  padding: 0.75rem 1rem;
+}
