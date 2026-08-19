@@ -1,10 +1,10 @@
-/* throwaway styling, delete once the real wishlist detail design lands
+/* throwaway styling, delete once the real friends design lands
 
 TO BE DELETED AND STYLED BY JAYDEN
 
 */
 
-.wl-detail {
+.fr {
   max-width: 640px;
   margin: 0 auto;
   padding: 2rem 1rem;
@@ -13,36 +13,34 @@ TO BE DELETED AND STYLED BY JAYDEN
   color: #111;
 }
 
-.wl-form {
+.fr-form {
   display: flex;
-  flex-wrap: wrap;
   gap: 0.5rem;
   margin: 1rem 0;
 }
 
-.wl-form input {
+.fr-form input {
   flex: 1;
-  min-width: 140px;
   padding: 0.5rem;
   border: 1px solid #ccc;
   border-radius: 6px;
 }
 
-.wl-error {
+.fr-error {
   color: #c0392b;
   margin-bottom: 1rem;
 }
 
-.wl-list {
+.fr-list {
   list-style: none;
   padding: 0;
-  margin: 0;
+  margin: 0 0 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.wl-list-item {
+.fr-list-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -52,47 +50,28 @@ TO BE DELETED AND STYLED BY JAYDEN
   border-radius: 8px;
 }
 
-.wl-list-item--editing {
-  flex-wrap: wrap;
-}
-
-.wl-list-item input:not([type='checkbox']) {
-  flex: 1;
-  min-width: 100px;
-  padding: 0.4rem;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-}
-
-.wl-list-item--purchased span,
-.wl-list-item--purchased a {
-  text-decoration: line-through;
-  color: #999;
-}
-
-.wl-empty {
+.fr-empty {
   color: #999;
   padding: 0.75rem 1rem;
 }
 
 @media (prefers-color-scheme: dark) {
-  .wl-detail {
+  .fr {
     background: #16171a;
     color: #eee;
   }
 
-  .wl-list-item {
+  .fr-list-item {
     border-color: #333;
   }
 
-  .wl-form input,
-  .wl-list-item input {
+  .fr-form input {
     background: #222;
     border-color: #444;
     color: #eee;
   }
 
-  .wl-empty {
+  .fr-empty {
     color: #999;
   }
 

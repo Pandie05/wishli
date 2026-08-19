@@ -2,3 +2,10 @@ body {
   margin: 0;
   font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
 }
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #16171a;
+    color: #eee;
+  }
+}
