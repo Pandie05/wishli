@@ -13,6 +13,37 @@ TO BE DELETED AND STYLED BY JAYDEN
   color: #111;
 }
 
+.wl-budget {
+  margin-bottom: 1rem;
+}
+
+.wl-budget-label {
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.wl-budget-label--over {
+  color: #c0392b;
+  font-weight: 600;
+}
+
+.wl-budget-bar {
+  margin-top: 0.35rem;
+  height: 8px;
+  border-radius: 4px;
+  background: #eee;
+  overflow: hidden;
+}
+
+.wl-budget-bar-fill {
+  height: 100%;
+  background: #4a90d9;
+}
+
+.wl-budget-bar-fill--over {
+  background: #c0392b;
+}
+
 .wl-form {
   display: flex;
   flex-wrap: wrap;
@@ -20,12 +51,19 @@ TO BE DELETED AND STYLED BY JAYDEN
   margin: 1rem 0;
 }
 
-.wl-form input {
+.wl-form input:not([type='checkbox']) {
   flex: 1;
   min-width: 140px;
   padding: 0.5rem;
   border: 1px solid #ccc;
   border-radius: 6px;
+}
+
+.wl-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.9rem;
 }
 
 .wl-error {
@@ -75,6 +113,44 @@ TO BE DELETED AND STYLED BY JAYDEN
   padding: 0.75rem 1rem;
 }
 
+.wl-list-item-thumb {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.wl-form-preview {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.wl-sort {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.wl-list-item-priority {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: #eef5fc;
+  color: #4a90d9;
+}
+
+.wl-list-item-date {
+  font-size: 0.75rem;
+  color: #999;
+  white-space: nowrap;
+}
+
 @media (prefers-color-scheme: dark) {
   .wl-detail {
     background: #16171a;
@@ -94,6 +170,23 @@ TO BE DELETED AND STYLED BY JAYDEN
 
   .wl-empty {
     color: #999;
+  }
+
+  .wl-budget-label {
+    color: #aaa;
+  }
+
+  .wl-budget-bar {
+    background: #333;
+  }
+
+  .wl-list-item-priority {
+    background: #1b2530;
+    color: #8ab4ff;
+  }
+
+  .wl-list-item-date {
+    color: #888;
   }
 
   a {

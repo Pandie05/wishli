@@ -1,0 +1,78 @@
+/* throwaway styling, delete once the real notifications design lands
+
+TO BE DELETED AND STYLED BY JAYDEN
+
+*/
+
+.notif {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  font-family: system-ui, sans-serif;
+  background: #fff;
+  color: #111;
+}
+
+.notif-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.notif-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #eee;
+  border-radius: 8px;
+}
+
+.notif-item--unread {
+  border-color: #4a90d9;
+  background: #eef5fc;
+}
+
+.notif-item-message {
+  flex: 1;
+  text-align: left;
+  background: none;
+  border: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.notif-empty {
+  color: #999;
+  padding: 0.75rem 1rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .notif {
+    background: #16171a;
+    color: #eee;
+  }
+
+  .notif-item {
+    border-color: #333;
+  }
+
+  .notif-item--unread {
+    border-color: #4a90d9;
+    background: #1b2530;
+  }
+
+  .notif-empty {
+    color: #999;
+  }
+
+  a {
+    color: #8ab4ff;
+  }
+}

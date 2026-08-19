@@ -8,10 +8,34 @@ type Item = {
   item_id: string
   name: string
   product_url: string | null
+  image_url: string | null
   price: number | null
   notes: string | null
   purchased: boolean
+  priority: number | null
   added_at: string
+}
+
+type SortMode = 'priority' | 'added_asc' | 'added_desc' | 'price_asc' | 'price_desc'
+
+function sortItems(items: Item[], mode: SortMode): Item[] {
+  const sorted = [...items]
+  switch (mode) {
+    case 'priority':
+      return sorted.sort(
+        (a, b) =>
+          (b.priority ?? 0) - (a.priority ?? 0) ||
+          new Date(b.added_at).getTime() - new Date(a.added_at).getTime(),
+      )
+    case 'added_asc':
+      return sorted.sort((a, b) => new Date(a.added_at).getTime() - new Date(b.added_at).getTime())
+    case 'added_desc':
+      return sorted.sort((a, b) => new Date(b.added_at).getTime() - new Date(a.added_at).getTime())
+    case 'price_asc':
+      return sorted.sort((a, b) => (a.price ?? Infinity) - (b.price ?? Infinity))
+    case 'price_desc':
+      return sorted.sort((a, b) => (b.price ?? -Infinity) - (a.price ?? -Infinity))
+  }
 }
 
 type Member = {
@@ -31,24 +55,31 @@ export default function WishlistDetail() {
 
   const [userId, setUserId] = useState<string | null>(null)
   const [wishlistName, setWishlistName] = useState('')
+  const [wishlistBudget, setWishlistBudget] = useState<number | null>(null)
+  const [purchaseVisibility, setPurchaseVisibility] = useState<'full' | 'aggregate'>('full')
   const [ownerId, setOwnerId] = useState<string | null>(null)
   const [items, setItems] = useState<Item[]>([])
   const [members, setMembers] = useState<Member[]>([])
   const [friends, setFriends] = useState<Friend[]>([])
   const [selectedFriendId, setSelectedFriendId] = useState('')
+  const [sortMode, setSortMode] = useState<SortMode>('priority')
   const [loading, setLoading] = useState(true)
 
   const [name, setName] = useState('')
   const [productUrl, setProductUrl] = useState('')
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [price, setPrice] = useState('')
+  const [mostWanted, setMostWanted] = useState(false)
   const [notes, setNotes] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [fetchingPreview, setFetchingPreview] = useState(false)
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
   const [editProductUrl, setEditProductUrl] = useState('')
   const [editPrice, setEditPrice] = useState('')
+  const [editMostWanted, setEditMostWanted] = useState(false)
   const [editNotes, setEditNotes] = useState('')
 
   useEffect(() => {
@@ -67,13 +98,13 @@ export default function WishlistDetail() {
       // id just gets no row
       const { data: wishlist } = await supabase
         .from('wishlists')
-        .select('id, name')
+        .select('id, name, budget, purchase_visibility')
         .eq('wishlist_id', wishlistId)
         .single()
 
       const { data: rows, error: fetchError } = await supabase
         .from('items')
-        .select('item_id, name, product_url, price, notes, purchased, added_at')
+        .select('item_id, name, product_url, image_url, price, notes, purchased, priority, added_at')
         .eq('wishlist_id', wishlistId)
         .order('added_at', { ascending: false })
 
@@ -118,6 +149,8 @@ export default function WishlistDetail() {
       if (!cancelled) {
         setUserId(user.id)
         setWishlistName(wishlist?.name ?? '')
+        setWishlistBudget(wishlist?.budget ?? null)
+        setPurchaseVisibility(wishlist?.purchase_visibility ?? 'full')
         setOwnerId(wishlist?.id ?? null)
         if (!fetchError) setItems(rows ?? [])
         setMembers(memberRows)
@@ -152,10 +185,12 @@ export default function WishlistDetail() {
         user_id: userId,
         name: trimmed,
         product_url: productUrl.trim() || null,
+        image_url: imageUrl,
         price: price ? Number(price) : null,
+        priority: mostWanted ? 1 : null,
         notes: notes.trim() || null,
       })
-      .select('item_id, name, product_url, price, notes, purchased, added_at')
+      .select('item_id, name, product_url, image_url, price, notes, purchased, priority, added_at')
       .single()
 
     if (insertError) {
@@ -167,9 +202,34 @@ export default function WishlistDetail() {
     setItems((prev) => [data, ...prev])
     setName('')
     setProductUrl('')
+    setImageUrl(null)
     setPrice('')
+    setMostWanted(false)
     setNotes('')
     setSubmitting(false)
+  }
+
+  async function fetchPreview() {
+    const url = productUrl.trim()
+    if (!url || fetchingPreview) return
+
+    setFetchingPreview(true)
+    setError(null)
+
+    const { data, error: fnError } = await supabase.functions.invoke('fetch-link-preview', {
+      body: { url },
+    })
+
+    setFetchingPreview(false)
+
+    if (fnError) {
+      setError('could not fetch details for that link')
+      return
+    }
+
+    if (data?.title && !name.trim()) setName(data.title)
+    if (data?.price != null) setPrice(String(data.price))
+    if (data?.image) setImageUrl(data.image)
   }
 
   function startEdit(item: Item) {
@@ -177,6 +237,7 @@ export default function WishlistDetail() {
     setEditName(item.name)
     setEditProductUrl(item.product_url ?? '')
     setEditPrice(item.price != null ? String(item.price) : '')
+    setEditMostWanted(item.priority != null)
     setEditNotes(item.notes ?? '')
   }
 
@@ -194,10 +255,11 @@ export default function WishlistDetail() {
         name: trimmed,
         product_url: editProductUrl.trim() || null,
         price: editPrice ? Number(editPrice) : null,
+        priority: editMostWanted ? 1 : null,
         notes: editNotes.trim() || null,
       })
       .eq('item_id', id)
-      .select('item_id, name, product_url, price, notes, purchased, added_at')
+      .select('item_id, name, product_url, image_url, price, notes, purchased, priority, added_at')
       .single()
 
     if (updateError) {
@@ -280,11 +342,36 @@ export default function WishlistDetail() {
   if (loading) return <p>Loading...</p>
 
   const isOwner = ownerId !== null && ownerId === userId
+  const spent = items.reduce((sum, item) => sum + (item.price ?? 0), 0)
+  const overBudget = wishlistBudget != null && spent > wishlistBudget
+  // owner opted into not spoiling their own surprise -- members still see
+  // full detail regardless, this only affects what the owner sees
+  const hidePurchasedDetail = isOwner && purchaseVisibility === 'aggregate'
+  const purchasedCount = items.filter((item) => item.purchased).length
+  const sortedItems = sortItems(items, sortMode)
 
   return (
     <div className="wl-detail">
       <Link to="/dashboard">back to dashboard</Link>
       <h1>{wishlistName || 'Wishlist'}</h1>
+
+      <div className="wl-budget">
+        {wishlistBudget != null ? (
+          <>
+            <span className={overBudget ? 'wl-budget-label wl-budget-label--over' : 'wl-budget-label'}>
+              ${spent} of ${wishlistBudget}
+            </span>
+            <div className="wl-budget-bar">
+              <div
+                className={overBudget ? 'wl-budget-bar-fill wl-budget-bar-fill--over' : 'wl-budget-bar-fill'}
+                style={{ width: `${Math.min((spent / wishlistBudget) * 100, 100)}%` }}
+              />
+            </div>
+          </>
+        ) : (
+          <span className="wl-budget-label">${spent} spent (no budget set)</span>
+        )}
+      </div>
 
       {isOwner && (
         <form className="wl-form" onSubmit={handleCreate}>
@@ -300,12 +387,24 @@ export default function WishlistDetail() {
             value={productUrl}
             onChange={(e) => setProductUrl(e.target.value)}
           />
+          <button type="button" onClick={fetchPreview} disabled={!productUrl.trim() || fetchingPreview}>
+            {fetchingPreview ? 'Fetching...' : 'Fetch details'}
+          </button>
+          {imageUrl && <img src={imageUrl} alt="" className="wl-form-preview" />}
           <input
             type="number"
             placeholder="price (optional)"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
           />
+          <label className="wl-checkbox-label">
+            <input
+              type="checkbox"
+              checked={mostWanted}
+              onChange={(e) => setMostWanted(e.target.checked)}
+            />
+            Most wanted
+          </label>
           <input
             type="text"
             placeholder="notes (optional)"
@@ -320,8 +419,29 @@ export default function WishlistDetail() {
 
       {error && <p className="wl-error">{error}</p>}
 
+      {hidePurchasedDetail && (
+        <p className="wl-budget-label">
+          {purchasedCount} of {items.length} items claimed
+        </p>
+      )}
+
+      <div className="wl-sort">
+        <label htmlFor="wl-sort-select">Sort by</label>
+        <select
+          id="wl-sort-select"
+          value={sortMode}
+          onChange={(e) => setSortMode(e.target.value as SortMode)}
+        >
+          <option value="priority">Most wanted first</option>
+          <option value="added_desc">Newest added</option>
+          <option value="added_asc">Oldest added</option>
+          <option value="price_asc">Price: low to high</option>
+          <option value="price_desc">Price: high to low</option>
+        </select>
+      </div>
+
       <ul className="wl-list">
-        {items.map((item) =>
+        {sortedItems.map((item) =>
           editingId === item.item_id ? (
             <li key={item.item_id} className="wl-list-item wl-list-item--editing">
               <input
@@ -339,6 +459,14 @@ export default function WishlistDetail() {
                 value={editPrice}
                 onChange={(e) => setEditPrice(e.target.value)}
               />
+              <label className="wl-checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={editMostWanted}
+                  onChange={(e) => setEditMostWanted(e.target.checked)}
+                />
+                Most wanted
+              </label>
               <input
                 type="text"
                 value={editNotes}
@@ -354,13 +482,20 @@ export default function WishlistDetail() {
           ) : (
             <li
               key={item.item_id}
-              className={item.purchased ? 'wl-list-item wl-list-item--purchased' : 'wl-list-item'}
+              className={
+                item.purchased && !hidePurchasedDetail
+                  ? 'wl-list-item wl-list-item--purchased'
+                  : 'wl-list-item'
+              }
             >
-              <input
-                type="checkbox"
-                checked={item.purchased}
-                onChange={() => togglePurchased(item)}
-              />
+              {!hidePurchasedDetail && (
+                <input
+                  type="checkbox"
+                  checked={item.purchased}
+                  onChange={() => togglePurchased(item)}
+                />
+              )}
+              {item.image_url && <img src={item.image_url} alt="" className="wl-list-item-thumb" />}
               {item.product_url ? (
                 <a href={item.product_url} target="_blank" rel="noreferrer">
                   {item.name}
@@ -369,6 +504,12 @@ export default function WishlistDetail() {
                 <span>{item.name}</span>
               )}
               {item.price != null && <span>${item.price}</span>}
+              {item.priority != null && (
+                <span className="wl-list-item-priority">Most wanted</span>
+              )}
+              <span className="wl-list-item-date">
+                added {new Date(item.added_at).toLocaleDateString()}
+              </span>
               {isOwner && (
                 <>
                   <button type="button" onClick={() => startEdit(item)}>

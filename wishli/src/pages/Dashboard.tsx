@@ -9,6 +9,7 @@ type Wishlist = {
   name: string
   budget: number | null
   created_at: string
+  purchase_visibility: 'full' | 'aggregate'
 }
 
 export default function Dashboard() {
@@ -17,16 +18,20 @@ export default function Dashboard() {
   const [wishlists, setWishlists] = useState<Wishlist[]>([])
   const [sharedWishlists, setSharedWishlists] = useState<Wishlist[]>([])
   const [itemCounts, setItemCounts] = useState<Record<string, number>>({})
+  const [itemTotals, setItemTotals] = useState<Record<string, number>>({})
+  const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(true)
 
   const [name, setName] = useState('')
   const [budget, setBudget] = useState('')
+  const [visibility, setVisibility] = useState<'full' | 'aggregate'>('full')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
   const [editBudget, setEditBudget] = useState('')
+  const [editVisibility, setEditVisibility] = useState<'full' | 'aggregate'>('full')
 
   useEffect(() => {
     let cancelled = false
@@ -42,7 +47,7 @@ export default function Dashboard() {
 
       const { data: rows, error: fetchError } = await supabase
         .from('wishlists')
-        .select('wishlist_id, name, budget, created_at')
+        .select('wishlist_id, name, budget, created_at, purchase_visibility')
         .eq('id', user.id)
         .order('created_at', { ascending: false })
 
@@ -50,23 +55,32 @@ export default function Dashboard() {
       // picks up everything else the previous query's .eq() excluded
       const { data: sharedRows } = await supabase
         .from('wishlists')
-        .select('wishlist_id, name, budget, created_at')
+        .select('wishlist_id, name, budget, created_at, purchase_visibility')
         .neq('id', user.id)
         .order('created_at', { ascending: false })
 
       // rls on items already scopes this to items on wishlists you can see
-      const { data: itemRows } = await supabase.from('items').select('wishlist_id')
+      const { data: itemRows } = await supabase.from('items').select('wishlist_id, price')
 
       const counts: Record<string, number> = {}
+      const totals: Record<string, number> = {}
       for (const item of itemRows ?? []) {
         counts[item.wishlist_id] = (counts[item.wishlist_id] ?? 0) + 1
+        totals[item.wishlist_id] = (totals[item.wishlist_id] ?? 0) + (item.price ?? 0)
       }
+
+      const { count } = await supabase
+        .from('notifications')
+        .select('notification_id', { count: 'exact', head: true })
+        .eq('is_read', false)
 
       if (!cancelled) {
         setUserId(user.id)
         if (!fetchError) setWishlists(rows ?? [])
         setSharedWishlists(sharedRows ?? [])
         setItemCounts(counts)
+        setItemTotals(totals)
+        setUnreadCount(count ?? 0)
         setLoading(false)
       }
     }
@@ -97,8 +111,9 @@ export default function Dashboard() {
         id: userId,
         name: trimmed,
         budget: budget ? Number(budget) : null,
+        purchase_visibility: visibility,
       })
-      .select('wishlist_id, name, budget, created_at')
+      .select('wishlist_id, name, budget, created_at, purchase_visibility')
       .single()
 
     if (insertError) {
@@ -110,6 +125,7 @@ export default function Dashboard() {
     setWishlists((prev) => [data, ...prev])
     setName('')
     setBudget('')
+    setVisibility('full')
     setSubmitting(false)
   }
 
@@ -117,6 +133,7 @@ export default function Dashboard() {
     setEditingId(w.wishlist_id)
     setEditName(w.name)
     setEditBudget(w.budget != null ? String(w.budget) : '')
+    setEditVisibility(w.purchase_visibility)
   }
 
   function cancelEdit() {
@@ -129,9 +146,13 @@ export default function Dashboard() {
 
     const { data, error: updateError } = await supabase
       .from('wishlists')
-      .update({ name: trimmed, budget: editBudget ? Number(editBudget) : null })
+      .update({
+        name: trimmed,
+        budget: editBudget ? Number(editBudget) : null,
+        purchase_visibility: editVisibility,
+      })
       .eq('wishlist_id', id)
-      .select('wishlist_id, name, budget, created_at')
+      .select('wishlist_id, name, budget, created_at, purchase_visibility')
       .single()
 
     if (updateError) {
@@ -163,6 +184,7 @@ export default function Dashboard() {
   if (loading) return <p>Loading...</p>
 
   const totalBudget = wishlists.reduce((sum, w) => sum + (w.budget ?? 0), 0)
+  const totalSpent = wishlists.reduce((sum, w) => sum + (itemTotals[w.wishlist_id] ?? 0), 0)
   const totalItems = Object.values(itemCounts).reduce((sum, c) => sum + c, 0)
 
   return (
@@ -170,6 +192,9 @@ export default function Dashboard() {
       <div className="dash-header">
         <h1>Dashboard</h1>
         <Link to="/friends">Friends</Link>
+        <Link to="/notifications">
+          Notifications{unreadCount > 0 ? ` (${unreadCount})` : ''}
+        </Link>
         <button type="button" onClick={handleLogout}>
           Logout
         </button>
@@ -181,8 +206,10 @@ export default function Dashboard() {
           <span className="dash-stat-label">wishlists</span>
         </div>
         <div className="dash-stat">
-          <span className="dash-stat-value">${totalBudget}</span>
-          <span className="dash-stat-label">budget</span>
+          <span className="dash-stat-value">
+            ${totalSpent} <span className="dash-stat-value-sub">/ ${totalBudget}</span>
+          </span>
+          <span className="dash-stat-label">spent / budget</span>
         </div>
         <div className="dash-stat">
           <span className="dash-stat-value">{totalItems}</span>
@@ -203,6 +230,13 @@ export default function Dashboard() {
           value={budget}
           onChange={(e) => setBudget(e.target.value)}
         />
+        <select
+          value={visibility}
+          onChange={(e) => setVisibility(e.target.value as 'full' | 'aggregate')}
+        >
+          <option value="full">Full purchase visibility</option>
+          <option value="aggregate">Aggregate only (hide from me)</option>
+        </select>
         <button type="submit" disabled={submitting}>
           {submitting ? 'Adding...' : 'Add wishlist'}
         </button>
@@ -224,6 +258,13 @@ export default function Dashboard() {
                 value={editBudget}
                 onChange={(e) => setEditBudget(e.target.value)}
               />
+              <select
+                value={editVisibility}
+                onChange={(e) => setEditVisibility(e.target.value as 'full' | 'aggregate')}
+              >
+                <option value="full">Full purchase visibility</option>
+                <option value="aggregate">Aggregate only (hide from me)</option>
+              </select>
               <button type="button" onClick={() => saveEdit(w.wishlist_id)}>
                 Save
               </button>
@@ -239,7 +280,13 @@ export default function Dashboard() {
                   {itemCounts[w.wishlist_id] ?? 0} items
                 </span>
               </span>
-              {w.budget != null && <span>${w.budget}</span>}
+              {w.budget != null ? (
+                <span>
+                  ${itemTotals[w.wishlist_id] ?? 0} / ${w.budget}
+                </span>
+              ) : (
+                (itemTotals[w.wishlist_id] ?? 0) > 0 && <span>${itemTotals[w.wishlist_id]} spent</span>
+              )}
               <button type="button" onClick={() => startEdit(w)}>
                 Edit
               </button>
@@ -262,7 +309,13 @@ export default function Dashboard() {
                 {itemCounts[w.wishlist_id] ?? 0} items
               </span>
             </span>
-            {w.budget != null && <span>${w.budget}</span>}
+            {w.budget != null ? (
+              <span>
+                ${itemTotals[w.wishlist_id] ?? 0} / ${w.budget}
+              </span>
+            ) : (
+              (itemTotals[w.wishlist_id] ?? 0) > 0 && <span>${itemTotals[w.wishlist_id]} spent</span>
+            )}
           </li>
         ))}
         {sharedWishlists.length === 0 && (
