@@ -9,6 +9,8 @@ TO BE DELETED AND STYLED BY JAYDEN
   margin: 0 auto;
   padding: 2rem 1rem;
   font-family: system-ui, sans-serif;
+  background: #fff;
+  color: #111;
 }
 
 .wl-form {
@@ -42,13 +44,53 @@ TO BE DELETED AND STYLED BY JAYDEN
 
 .wl-list-item {
   display: flex;
+  align-items: center;
   justify-content: space-between;
+  gap: 0.5rem;
   padding: 0.75rem 1rem;
   border: 1px solid #eee;
   border-radius: 8px;
 }
 
+.wl-list-item--editing {
+  flex-wrap: wrap;
+}
+
+.wl-list-item input {
+  flex: 1;
+  min-width: 100px;
+  padding: 0.4rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
 .wl-empty {
   color: #999;
   padding: 0.75rem 1rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .wl-detail {
+    background: #16171a;
+    color: #eee;
+  }
+
+  .wl-list-item {
+    border-color: #333;
+  }
+
+  .wl-form input,
+  .wl-list-item input {
+    background: #222;
+    border-color: #444;
+    color: #eee;
+  }
+
+  .wl-empty {
+    color: #999;
+  }
+
+  a {
+    color: #8ab4ff;
+  }
 }

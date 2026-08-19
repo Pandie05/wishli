@@ -23,6 +23,10 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editBudget, setEditBudget] = useState('')
+
   useEffect(() => {
     let cancelled = false
 
@@ -99,6 +103,48 @@ export default function Dashboard() {
     setSubmitting(false)
   }
 
+  function startEdit(w: Wishlist) {
+    setEditingId(w.wishlist_id)
+    setEditName(w.name)
+    setEditBudget(w.budget != null ? String(w.budget) : '')
+  }
+
+  function cancelEdit() {
+    setEditingId(null)
+  }
+
+  async function saveEdit(id: string) {
+    const trimmed = editName.trim()
+    if (!trimmed) return
+
+    const { data, error: updateError } = await supabase
+      .from('wishlists')
+      .update({ name: trimmed, budget: editBudget ? Number(editBudget) : null })
+      .eq('wishlist_id', id)
+      .select('wishlist_id, name, budget, created_at')
+      .single()
+
+    if (updateError) {
+      setError(updateError.message)
+      return
+    }
+
+    setWishlists((prev) => prev.map((w) => (w.wishlist_id === id ? data : w)))
+    setEditingId(null)
+  }
+
+  async function deleteWishlist(id: string) {
+    if (!window.confirm('Delete this wishlist?')) return
+
+    const { error: deleteError } = await supabase.from('wishlists').delete().eq('wishlist_id', id)
+    if (deleteError) {
+      setError(deleteError.message)
+      return
+    }
+
+    setWishlists((prev) => prev.filter((w) => w.wishlist_id !== id))
+  }
+
   async function handleLogout() {
     await supabase.auth.signOut()
     navigate('/login', { replace: true })
@@ -154,17 +200,44 @@ export default function Dashboard() {
       {error && <p className="dash-error">{error}</p>}
 
       <ul className="dash-list">
-        {wishlists.map((w) => (
-          <li key={w.wishlist_id} className="dash-list-item">
-            <span>
-              <Link to={`/wishlist/${w.wishlist_id}`}>{w.name}</Link>
-              <span className="dash-list-item-count">
-                {itemCounts[w.wishlist_id] ?? 0} items
+        {wishlists.map((w) =>
+          editingId === w.wishlist_id ? (
+            <li key={w.wishlist_id} className="dash-list-item">
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+              />
+              <input
+                type="number"
+                value={editBudget}
+                onChange={(e) => setEditBudget(e.target.value)}
+              />
+              <button type="button" onClick={() => saveEdit(w.wishlist_id)}>
+                Save
+              </button>
+              <button type="button" onClick={cancelEdit}>
+                Cancel
+              </button>
+            </li>
+          ) : (
+            <li key={w.wishlist_id} className="dash-list-item">
+              <span>
+                <Link to={`/wishlist/${w.wishlist_id}`}>{w.name}</Link>
+                <span className="dash-list-item-count">
+                  {itemCounts[w.wishlist_id] ?? 0} items
+                </span>
               </span>
-            </span>
-            {w.budget != null && <span>${w.budget}</span>}
-          </li>
-        ))}
+              {w.budget != null && <span>${w.budget}</span>}
+              <button type="button" onClick={() => startEdit(w)}>
+                Edit
+              </button>
+              <button type="button" onClick={() => deleteWishlist(w.wishlist_id)}>
+                Delete
+              </button>
+            </li>
+          ),
+        )}
         {wishlists.length === 0 && <li className="dash-empty">no wishlists yet</li>}
       </ul>
     </div>
