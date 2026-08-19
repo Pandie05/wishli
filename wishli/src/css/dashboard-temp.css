@@ -20,6 +20,11 @@ TO BE DELETED AND STYLED BY JAYDEN
   margin-bottom: 1.5rem;
 }
 
+.dash-greeting {
+  font-size: 0.9rem;
+  color: #666;
+}
+
 .dash-stats {
   display: flex;
   gap: 1rem;
@@ -120,7 +125,8 @@ TO BE DELETED AND STYLED BY JAYDEN
 
   .dash-stat-label,
   .dash-list-item-count,
-  .dash-empty {
+  .dash-empty,
+  .dash-greeting {
     color: #999;
   }
 
