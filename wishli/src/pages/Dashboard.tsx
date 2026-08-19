@@ -15,6 +15,7 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const [userId, setUserId] = useState<string | null>(null)
   const [wishlists, setWishlists] = useState<Wishlist[]>([])
+  const [sharedWishlists, setSharedWishlists] = useState<Wishlist[]>([])
   const [itemCounts, setItemCounts] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
 
@@ -45,7 +46,15 @@ export default function Dashboard() {
         .eq('id', user.id)
         .order('created_at', { ascending: false })
 
-      // rls on items already scopes this to items on wishlists you own
+      // rls also scopes wishlists you're a member of, not just own, so this
+      // picks up everything else the previous query's .eq() excluded
+      const { data: sharedRows } = await supabase
+        .from('wishlists')
+        .select('wishlist_id, name, budget, created_at')
+        .neq('id', user.id)
+        .order('created_at', { ascending: false })
+
+      // rls on items already scopes this to items on wishlists you can see
       const { data: itemRows } = await supabase.from('items').select('wishlist_id')
 
       const counts: Record<string, number> = {}
@@ -56,6 +65,7 @@ export default function Dashboard() {
       if (!cancelled) {
         setUserId(user.id)
         if (!fetchError) setWishlists(rows ?? [])
+        setSharedWishlists(sharedRows ?? [])
         setItemCounts(counts)
         setLoading(false)
       }
@@ -159,6 +169,7 @@ export default function Dashboard() {
     <div className="dash">
       <div className="dash-header">
         <h1>Dashboard</h1>
+        <Link to="/friends">Friends</Link>
         <button type="button" onClick={handleLogout}>
           Logout
         </button>
@@ -239,6 +250,24 @@ export default function Dashboard() {
           ),
         )}
         {wishlists.length === 0 && <li className="dash-empty">no wishlists yet</li>}
+      </ul>
+
+      <h2>Shared with me</h2>
+      <ul className="dash-list">
+        {sharedWishlists.map((w) => (
+          <li key={w.wishlist_id} className="dash-list-item">
+            <span>
+              <Link to={`/wishlist/${w.wishlist_id}`}>{w.name}</Link>
+              <span className="dash-list-item-count">
+                {itemCounts[w.wishlist_id] ?? 0} items
+              </span>
+            </span>
+            {w.budget != null && <span>${w.budget}</span>}
+          </li>
+        ))}
+        {sharedWishlists.length === 0 && (
+          <li className="dash-empty">nothing shared with you yet</li>
+        )}
       </ul>
     </div>
   )
