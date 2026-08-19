@@ -1,0 +1,96 @@
+/* throwaway styling, delete once the real settings design lands
+
+TO BE DELETED AND STYLED BY JAYDEN
+
+*/
+
+.set {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  font-family: system-ui, sans-serif;
+  background: #fff;
+  color: #111;
+}
+
+.set-section {
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid #eee;
+  border-radius: 8px;
+}
+
+.set-section h2 {
+  margin-top: 0;
+  font-size: 1rem;
+}
+
+.set-form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.set-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: 100%;
+}
+
+.set-field label {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.set-field input {
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.set-error {
+  color: #c0392b;
+  margin-bottom: 0;
+}
+
+.set-notice {
+  color: #1e8449;
+  margin-bottom: 0;
+}
+
+.set-empty {
+  color: #999;
+  margin: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .set {
+    background: #16171a;
+    color: #eee;
+  }
+
+  .set-section {
+    border-color: #333;
+  }
+
+  .set-field input {
+    background: #222;
+    border-color: #444;
+    color: #eee;
+  }
+
+  .set-field label,
+  .set-empty {
+    color: #999;
+  }
+
+  .set-notice {
+    color: #6fcf97;
+  }
+
+  a {
+    color: #8ab4ff;
+  }
+}

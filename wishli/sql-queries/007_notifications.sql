@@ -1,4 +1,4 @@
--- notifications, run after 005
+-- notifications, run after 006
 
 alter table public.notifications enable row level security;
 

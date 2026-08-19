@@ -1,4 +1,4 @@
--- rename items."Priority" to items.priority, run after 006
+-- rename items."Priority" to items.priority, run after 007
 --
 -- the column was originally added with a capital P (probably via the table
 -- editor), which meant every query had to double-quote it to avoid hitting a

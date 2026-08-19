@@ -15,6 +15,7 @@ type Wishlist = {
 export default function Dashboard() {
   const navigate = useNavigate()
   const [userId, setUserId] = useState<string | null>(null)
+  const [username, setUsername] = useState('')
   const [wishlists, setWishlists] = useState<Wishlist[]>([])
   const [sharedWishlists, setSharedWishlists] = useState<Wishlist[]>([])
   const [itemCounts, setItemCounts] = useState<Record<string, number>>({})
@@ -44,6 +45,12 @@ export default function Dashboard() {
         if (!cancelled) navigate('/login', { replace: true })
         return
       }
+
+      const { data: profile } = await supabase
+        .from('users')
+        .select('username')
+        .eq('id', user.id)
+        .single()
 
       const { data: rows, error: fetchError } = await supabase
         .from('wishlists')
@@ -76,6 +83,7 @@ export default function Dashboard() {
 
       if (!cancelled) {
         setUserId(user.id)
+        setUsername(profile?.username ?? '')
         if (!fetchError) setWishlists(rows ?? [])
         setSharedWishlists(sharedRows ?? [])
         setItemCounts(counts)
@@ -191,10 +199,12 @@ export default function Dashboard() {
     <div className="dash">
       <div className="dash-header">
         <h1>Dashboard</h1>
+        <span className="dash-greeting">Hello: {username}</span>
         <Link to="/friends">Friends</Link>
         <Link to="/notifications">
           Notifications{unreadCount > 0 ? ` (${unreadCount})` : ''}
         </Link>
+        <Link to="/settings">Settings</Link>
         <button type="button" onClick={handleLogout}>
           Logout
         </button>
