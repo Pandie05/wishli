@@ -64,6 +64,7 @@ sql-queries/
   006_purchase_visibility.sql
   007_notifications.sql
   008_item_priority_rename.sql
+  009_claims_editors_contributions.sql
 ```
 
 Each file is safe to re-run (everything is `if not exists` / `or replace`), so if you're not sure what's already applied, running the whole sequence again won't break anything.

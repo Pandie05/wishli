@@ -151,6 +151,51 @@ TO BE DELETED AND STYLED BY JAYDEN
   white-space: nowrap;
 }
 
+.wl-list-item-claim {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: #555;
+}
+
+.wl-role-badge {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: #eee;
+  color: #555;
+}
+
+.wl-list-item-contributions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: #555;
+  width: 100%;
+}
+
+.wl-contributor {
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: #f4f4f4;
+}
+
+.wl-pledge-form {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.wl-pledge-form input {
+  width: 80px;
+  padding: 0.3rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
 @media (prefers-color-scheme: dark) {
   .wl-detail {
     background: #16171a;
@@ -187,6 +232,26 @@ TO BE DELETED AND STYLED BY JAYDEN
 
   .wl-list-item-date {
     color: #888;
+  }
+
+  .wl-list-item-claim,
+  .wl-list-item-contributions {
+    color: #aaa;
+  }
+
+  .wl-role-badge {
+    background: #2a2a2a;
+    color: #ccc;
+  }
+
+  .wl-contributor {
+    background: #222;
+  }
+
+  .wl-pledge-form input {
+    background: #222;
+    border-color: #444;
+    color: #eee;
   }
 
   a {
