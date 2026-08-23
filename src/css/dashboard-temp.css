@@ -57,12 +57,15 @@ TO BE DELETED AND STYLED BY JAYDEN
 
 .dash-form {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
   margin-bottom: 1rem;
 }
 
-.dash-form input {
+.dash-form input,
+.dash-form select {
   flex: 1;
+  min-width: 140px;
   padding: 0.5rem;
   border: 1px solid #ccc;
   border-radius: 6px;
@@ -123,6 +126,7 @@ TO BE DELETED AND STYLED BY JAYDEN
   }
 
   .dash-form input,
+  .dash-form select,
   .dash-list-item input {
     background: #222;
     border-color: #444;

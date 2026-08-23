@@ -3,9 +3,45 @@ body {
   font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
 }
 
+/* neutral baseline so buttons/inputs read as clickable UI instead of raw
+   browser defaults -- intentionally unopinionated on color/branding, that's
+   for the real design pass */
+button {
+  font: inherit;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #f5f5f5;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #ebebeb;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+input,
+select {
+  font: inherit;
+}
+
 @media (prefers-color-scheme: dark) {
   body {
     background: #16171a;
     color: #eee;
+  }
+
+  button {
+    background: #2a2a2a;
+    border-color: #444;
+    color: #eee;
+  }
+
+  button:hover {
+    background: #333;
   }
 }

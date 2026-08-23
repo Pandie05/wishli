@@ -1,0 +1,64 @@
+/* throwaway styling, delete once the real modal design lands
+
+TO BE DELETED AND STYLED BY JAYDEN
+
+*/
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 100;
+}
+
+.modal-panel {
+  width: 100%;
+  max-width: 420px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #fff;
+  color: #111;
+  border-radius: 10px;
+  padding: 1.25rem;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  padding: 0.25rem 0.5rem;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.modal-body form,
+.modal-body .wl-form,
+.modal-body .dash-form {
+  margin: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .modal-panel {
+    background: #1e1f23;
+    color: #eee;
+  }
+
+  .modal-close {
+    color: #eee;
+  }
+}

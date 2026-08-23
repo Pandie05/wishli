@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import Modal from '../components/Modal'
 import '../css/wishlist-detail-temp.css'
 
 type Item = {
@@ -90,6 +91,7 @@ export default function WishlistDetail() {
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [fetchingPreview, setFetchingPreview] = useState(false)
+  const [showAddModal, setShowAddModal] = useState(false)
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
@@ -273,6 +275,7 @@ export default function WishlistDetail() {
     setMostWanted(false)
     setNotes('')
     setSubmitting(false)
+    setShowAddModal(false)
   }
 
   async function fetchPreview() {
@@ -544,47 +547,60 @@ export default function WishlistDetail() {
       </div>
 
       {(isOwner || isEditor) && (
-        <form className="wl-form" onSubmit={handleCreate}>
-          <input
-            type="text"
-            placeholder="item name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <input
-            type="url"
-            placeholder="product url (optional)"
-            value={productUrl}
-            onChange={(e) => setProductUrl(e.target.value)}
-          />
-          <button type="button" onClick={fetchPreview} disabled={!productUrl.trim() || fetchingPreview}>
-            {fetchingPreview ? 'Fetching...' : 'Fetch details'}
+        <>
+          <button type="button" onClick={() => setShowAddModal(true)}>
+            + Add wish
           </button>
-          {imageUrl && <img src={imageUrl} alt="" className="wl-form-preview" />}
-          <input
-            type="number"
-            placeholder="price (optional)"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-          />
-          <label className="wl-checkbox-label">
-            <input
-              type="checkbox"
-              checked={mostWanted}
-              onChange={(e) => setMostWanted(e.target.checked)}
-            />
-            Most wanted
-          </label>
-          <input
-            type="text"
-            placeholder="notes (optional)"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-          />
-          <button type="submit" disabled={submitting}>
-            {submitting ? 'Adding...' : 'Add item'}
-          </button>
-        </form>
+
+          <Modal open={showAddModal} onClose={() => setShowAddModal(false)} title="Add a wish">
+            {error && <p className="wl-error">{error}</p>}
+            <form className="wl-form" onSubmit={handleCreate}>
+              <input
+                type="text"
+                placeholder="item name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+              <input
+                type="url"
+                placeholder="product url (optional)"
+                value={productUrl}
+                onChange={(e) => setProductUrl(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={fetchPreview}
+                disabled={!productUrl.trim() || fetchingPreview}
+              >
+                {fetchingPreview ? 'Fetching...' : 'Fetch details'}
+              </button>
+              {imageUrl && <img src={imageUrl} alt="" className="wl-form-preview" />}
+              <input
+                type="number"
+                placeholder="price (optional)"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+              />
+              <label className="wl-checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={mostWanted}
+                  onChange={(e) => setMostWanted(e.target.checked)}
+                />
+                Most wanted
+              </label>
+              <input
+                type="text"
+                placeholder="notes (optional)"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+              <button type="submit" disabled={submitting}>
+                {submitting ? 'Adding...' : 'Add item'}
+              </button>
+            </form>
+          </Modal>
+        </>
       )}
 
       {error && <p className="wl-error">{error}</p>}
