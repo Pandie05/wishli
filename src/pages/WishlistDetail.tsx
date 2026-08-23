@@ -727,11 +727,12 @@ export default function WishlistDetail() {
                         {item.price != null ? ` of $${item.price} pledged` : ' pledged'}
                       </span>
                     )}
-                    {itemContribs.map((c) => (
-                      <span key={c.contribution_id} className="wl-contributor">
-                        {c.username}: ${c.amount}
-                      </span>
-                    ))}
+                    {!hidePurchasedDetail &&
+                      itemContribs.map((c) => (
+                        <span key={c.contribution_id} className="wl-contributor">
+                          {c.username}: ${c.amount}
+                        </span>
+                      ))}
                     {!isOwner && (
                       <span className="wl-pledge-form">
                         <input
