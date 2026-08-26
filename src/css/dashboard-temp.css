@@ -1,76 +1,130 @@
-/* throwaway styling, delete once the real dashboard design lands
-
-TO BE DELETED AND STYLED BY JAYDEN
-
-*/
+/* delete once the real dashboard design lands -- built on the shared tokens
+   in index.css, so it already follows the auth pages' palette/radius */
 
 .dash {
-  max-width: 640px;
+  max-width: 760px;
   margin: 0 auto;
-  padding: 2rem 1rem;
-  font-family: system-ui, sans-serif;
-  background: #fff;
-  color: #111;
+  padding: 2.5rem 1.5rem 4rem;
 }
 
 .dash-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1.5rem;
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.dash-header h1 {
+  margin: 0 auto 0 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--heading);
 }
 
 .dash-greeting {
   font-size: 0.9rem;
-  color: #666;
+  color: var(--muted);
+}
+
+.dash-header a {
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--label);
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.dash-header a:hover {
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+}
+
+.dash-header button {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.85rem;
 }
 
 .dash-stats {
   display: flex;
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.75rem;
 }
 
 .dash-stat {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 0.75rem 1rem;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  gap: 0.2rem;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
 }
 
 .dash-stat-value {
-  font-size: 1.25rem;
-  font-weight: 600;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--heading);
 }
 
 .dash-stat-value-sub {
   font-size: 0.9rem;
   font-weight: 400;
-  color: #999;
+  color: var(--muted);
 }
 
 .dash-stat-label {
   font-size: 0.8rem;
-  color: #666;
+  color: var(--muted);
+}
+
+/* the bare "+ add" button that opens the create-wishlist modal -- the one
+   button that's a direct child of .dash rather than nested in the header or
+   a list item, so it can be targeted without touching the component */
+.dash > button {
+  margin-bottom: 1.5rem;
+  border-color: transparent;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.dash > button:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: transparent;
 }
 
 .dash-form {
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.6rem;
 }
 
-.dash-form input {
+.dash-form input,
+.dash-form select {
   flex: 1;
-  padding: 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: 6px;
+  min-width: 140px;
 }
 
 .dash-error {
-  color: #c0392b;
+  padding: 0.6rem 0.9rem;
   margin-bottom: 1rem;
+  border-radius: var(--radius-md);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 0.9rem;
+}
+
+.dash h2 {
+  margin: 2rem 0 0.85rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--heading);
 }
 
 .dash-list {
@@ -79,64 +133,53 @@ TO BE DELETED AND STYLED BY JAYDEN
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.6rem;
 }
 
 .dash-list-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  border: 1px solid #eee;
-  border-radius: 8px;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  padding: 0.9rem 1.1rem;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.15s ease, transform 0.1s ease;
+}
+
+.dash-list-item:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+.dash-list-item a {
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--heading);
+}
+
+.dash-list-item a:hover {
+  color: var(--accent);
 }
 
 .dash-list-item input {
   flex: 1;
   min-width: 0;
-  padding: 0.4rem;
-  border: 1px solid #ccc;
-  border-radius: 6px;
 }
 
 .dash-list-item-count {
-  margin-left: 0.5rem;
+  margin-left: 0.6rem;
   font-size: 0.8rem;
-  color: #999;
+  font-weight: 400;
+  color: var(--muted);
 }
 
 .dash-empty {
-  color: #999;
-  padding: 0.75rem 1rem;
-}
-
-@media (prefers-color-scheme: dark) {
-  .dash {
-    background: #16171a;
-    color: #eee;
-  }
-
-  .dash-stat,
-  .dash-list-item {
-    border-color: #333;
-  }
-
-  .dash-form input,
-  .dash-list-item input {
-    background: #222;
-    border-color: #444;
-    color: #eee;
-  }
-
-  .dash-stat-label,
-  .dash-list-item-count,
-  .dash-empty,
-  .dash-greeting {
-    color: #999;
-  }
-
-  a {
-    color: #8ab4ff;
-  }
+  padding: 1.5rem;
+  text-align: center;
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--border);
+  color: var(--muted);
+  font-size: 0.9rem;
 }

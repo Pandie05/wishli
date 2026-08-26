@@ -2,7 +2,6 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import GoogleButton from '../components/GoogleButton'
 
 // Mirrors the check constraints on public.users so bad input is caught before
 // it becomes an opaque database error.

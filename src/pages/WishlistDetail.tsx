@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import Modal from '../components/Modal'
 import '../css/wishlist-detail-temp.css'
 
 type Item = {
   item_id: string
+  user_id: string
   name: string
   product_url: string | null
   image_url: string | null
@@ -13,6 +15,8 @@ type Item = {
   notes: string | null
   purchased: boolean
   priority: number | null
+  claimed_by: string | null
+  claimed_at: string | null
   added_at: string
 }
 
@@ -42,11 +46,20 @@ type Member = {
   member_id: string
   user_id: string
   username: string
+  role: 'viewer' | 'editor'
 }
 
 type Friend = {
   id: string
   username: string
+}
+
+type Contribution = {
+  contribution_id: string
+  item_id: string
+  user_id: string
+  username: string
+  amount: number
 }
 
 export default function WishlistDetail() {
@@ -64,6 +77,10 @@ export default function WishlistDetail() {
   const [selectedFriendId, setSelectedFriendId] = useState('')
   const [sortMode, setSortMode] = useState<SortMode>('priority')
   const [loading, setLoading] = useState(true)
+  const [myRole, setMyRole] = useState<'viewer' | 'editor' | null>(null)
+  const [names, setNames] = useState<Record<string, string>>({})
+  const [contributions, setContributions] = useState<Contribution[]>([])
+  const [pledgeInputs, setPledgeInputs] = useState<Record<string, string>>({})
 
   const [name, setName] = useState('')
   const [productUrl, setProductUrl] = useState('')
@@ -74,6 +91,7 @@ export default function WishlistDetail() {
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [fetchingPreview, setFetchingPreview] = useState(false)
+  const [showAddModal, setShowAddModal] = useState(false)
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
@@ -104,7 +122,9 @@ export default function WishlistDetail() {
 
       const { data: rows, error: fetchError } = await supabase
         .from('items')
-        .select('item_id, name, product_url, image_url, price, notes, purchased, priority, added_at')
+        .select(
+          'item_id, user_id, name, product_url, image_url, price, notes, purchased, priority, claimed_by, claimed_at, added_at',
+        )
         .eq('wishlist_id', wishlistId)
         .order('added_at', { ascending: false })
 
@@ -112,17 +132,23 @@ export default function WishlistDetail() {
 
       let memberRows: Member[] = []
       let friendRows: Friend[] = []
+      let selfRole: 'viewer' | 'editor' | null = null
 
       if (isOwner) {
         const { data: memberships } = await supabase
           .from('wishlist_members')
-          .select('member_id, user_id')
+          .select('member_id, user_id, role')
           .eq('wishlist_id', wishlistId)
 
         memberRows = await Promise.all(
           (memberships ?? []).map(async (m) => {
             const { data: username } = await supabase.rpc('username_for_id', { id: m.user_id })
-            return { member_id: m.member_id, user_id: m.user_id, username: username ?? '(unknown)' }
+            return {
+              member_id: m.member_id,
+              user_id: m.user_id,
+              username: username ?? '(unknown)',
+              role: (m.role as 'viewer' | 'editor') ?? 'viewer',
+            }
           }),
         )
 
@@ -144,7 +170,44 @@ export default function WishlistDetail() {
               return { id, username: username ?? '(unknown)' }
             }),
         )
+      } else {
+        const { data: selfMembership } = await supabase
+          .from('wishlist_members')
+          .select('role')
+          .eq('wishlist_id', wishlistId)
+          .eq('user_id', user.id)
+          .maybeSingle()
+
+        selfRole = (selfMembership?.role as 'viewer' | 'editor' | undefined) ?? null
       }
+
+      const itemIds = (rows ?? []).map((r) => r.item_id)
+
+      const { data: contributionRows } = itemIds.length
+        ? await supabase
+            .from('item_contributions')
+            .select('contribution_id, item_id, user_id, amount')
+            .in('item_id', itemIds)
+        : { data: [] }
+
+      const claimantIds = (rows ?? [])
+        .map((r) => r.claimed_by)
+        .filter((id): id is string => id != null)
+      const contributorIds = (contributionRows ?? []).map((c) => c.user_id)
+      const idsToResolve = [...new Set([...claimantIds, ...contributorIds])]
+
+      const nameEntries = await Promise.all(
+        idsToResolve.map(async (id) => {
+          const { data: username } = await supabase.rpc('username_for_id', { id })
+          return [id, username ?? '(unknown)'] as const
+        }),
+      )
+      const nameMap = Object.fromEntries(nameEntries)
+
+      const contributionsWithNames: Contribution[] = (contributionRows ?? []).map((c) => ({
+        ...c,
+        username: nameMap[c.user_id] ?? '(unknown)',
+      }))
 
       if (!cancelled) {
         setUserId(user.id)
@@ -155,6 +218,9 @@ export default function WishlistDetail() {
         if (!fetchError) setItems(rows ?? [])
         setMembers(memberRows)
         setFriends(friendRows)
+        setMyRole(selfRole)
+        setNames(nameMap)
+        setContributions(contributionsWithNames)
         setLoading(false)
       }
     }
@@ -190,7 +256,9 @@ export default function WishlistDetail() {
         priority: mostWanted ? 1 : null,
         notes: notes.trim() || null,
       })
-      .select('item_id, name, product_url, image_url, price, notes, purchased, priority, added_at')
+      .select(
+        'item_id, user_id, name, product_url, image_url, price, notes, purchased, priority, claimed_by, claimed_at, added_at',
+      )
       .single()
 
     if (insertError) {
@@ -207,6 +275,7 @@ export default function WishlistDetail() {
     setMostWanted(false)
     setNotes('')
     setSubmitting(false)
+    setShowAddModal(false)
   }
 
   async function fetchPreview() {
@@ -259,7 +328,9 @@ export default function WishlistDetail() {
         notes: editNotes.trim() || null,
       })
       .eq('item_id', id)
-      .select('item_id, name, product_url, image_url, price, notes, purchased, priority, added_at')
+      .select(
+        'item_id, user_id, name, product_url, image_url, price, notes, purchased, priority, claimed_by, claimed_at, added_at',
+      )
       .single()
 
     if (updateError) {
@@ -289,13 +360,104 @@ export default function WishlistDetail() {
     )
   }
 
+  async function claimItem(item: Item) {
+    const { error: rpcError } = await supabase.rpc('set_item_claimed', {
+      item_id: item.item_id,
+      claimed: true,
+    })
+
+    if (rpcError) {
+      setError(rpcError.message)
+      return
+    }
+
+    setItems((prev) =>
+      prev.map((i) =>
+        i.item_id === item.item_id ? { ...i, claimed_by: userId, claimed_at: new Date().toISOString() } : i,
+      ),
+    )
+  }
+
+  async function releaseItem(item: Item) {
+    const { error: rpcError } = await supabase.rpc('set_item_claimed', {
+      item_id: item.item_id,
+      claimed: false,
+    })
+
+    if (rpcError) {
+      setError(rpcError.message)
+      return
+    }
+
+    setItems((prev) =>
+      prev.map((i) => (i.item_id === item.item_id ? { ...i, claimed_by: null, claimed_at: null } : i)),
+    )
+  }
+
+  async function setMemberRole(member: Member, role: 'viewer' | 'editor') {
+    const { error: rpcError } = await supabase.rpc('set_wishlist_member_role', {
+      wishlist_id: wishlistId,
+      user_id: member.user_id,
+      role,
+    })
+
+    if (rpcError) {
+      setError(rpcError.message)
+      return
+    }
+
+    setMembers((prev) => prev.map((m) => (m.member_id === member.member_id ? { ...m, role } : m)))
+  }
+
+  async function pledge(item: Item) {
+    const amount = Number(pledgeInputs[item.item_id])
+    if (!userId || !amount || amount <= 0) return
+
+    const { data, error: upsertError } = await supabase
+      .from('item_contributions')
+      .upsert(
+        { item_id: item.item_id, user_id: userId, amount },
+        { onConflict: 'item_id,user_id' },
+      )
+      .select('contribution_id, item_id, user_id, amount')
+      .single()
+
+    if (upsertError) {
+      setError(upsertError.message)
+      return
+    }
+
+    setContributions((prev) => [
+      ...prev.filter((c) => !(c.item_id === item.item_id && c.user_id === userId)),
+      { ...data, username: 'you' },
+    ])
+    setPledgeInputs((prev) => ({ ...prev, [item.item_id]: '' }))
+  }
+
+  async function removePledge(item: Item) {
+    if (!userId) return
+
+    const { error: deleteError } = await supabase
+      .from('item_contributions')
+      .delete()
+      .eq('item_id', item.item_id)
+      .eq('user_id', userId)
+
+    if (deleteError) {
+      setError(deleteError.message)
+      return
+    }
+
+    setContributions((prev) => prev.filter((c) => !(c.item_id === item.item_id && c.user_id === userId)))
+  }
+
   async function addMember() {
     if (!selectedFriendId) return
 
     const { data, error: insertError } = await supabase
       .from('wishlist_members')
       .insert({ wishlist_id: wishlistId, user_id: selectedFriendId })
-      .select('member_id, user_id')
+      .select('member_id, user_id, role')
       .single()
 
     if (insertError) {
@@ -306,7 +468,12 @@ export default function WishlistDetail() {
     const friend = friends.find((f) => f.id === selectedFriendId)
     setMembers((prev) => [
       ...prev,
-      { member_id: data.member_id, user_id: data.user_id, username: friend?.username ?? '' },
+      {
+        member_id: data.member_id,
+        user_id: data.user_id,
+        username: friend?.username ?? '',
+        role: (data.role as 'viewer' | 'editor') ?? 'viewer',
+      },
     ])
     setFriends((prev) => prev.filter((f) => f.id !== selectedFriendId))
     setSelectedFriendId('')
@@ -342,6 +509,7 @@ export default function WishlistDetail() {
   if (loading) return <p>Loading...</p>
 
   const isOwner = ownerId !== null && ownerId === userId
+  const isEditor = myRole === 'editor'
   const spent = items.reduce((sum, item) => sum + (item.price ?? 0), 0)
   const overBudget = wishlistBudget != null && spent > wishlistBudget
   // owner opted into not spoiling their own surprise -- members still see
@@ -349,6 +517,11 @@ export default function WishlistDetail() {
   const hidePurchasedDetail = isOwner && purchaseVisibility === 'aggregate'
   const purchasedCount = items.filter((item) => item.purchased).length
   const sortedItems = sortItems(items, sortMode)
+
+  const contributionsByItem = new Map<string, Contribution[]>()
+  for (const c of contributions) {
+    contributionsByItem.set(c.item_id, [...(contributionsByItem.get(c.item_id) ?? []), c])
+  }
 
   return (
     <div className="wl-detail">
@@ -373,48 +546,61 @@ export default function WishlistDetail() {
         )}
       </div>
 
-      {isOwner && (
-        <form className="wl-form" onSubmit={handleCreate}>
-          <input
-            type="text"
-            placeholder="item name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <input
-            type="url"
-            placeholder="product url (optional)"
-            value={productUrl}
-            onChange={(e) => setProductUrl(e.target.value)}
-          />
-          <button type="button" onClick={fetchPreview} disabled={!productUrl.trim() || fetchingPreview}>
-            {fetchingPreview ? 'Fetching...' : 'Fetch details'}
+      {(isOwner || isEditor) && (
+        <>
+          <button type="button" onClick={() => setShowAddModal(true)}>
+            + Add wish
           </button>
-          {imageUrl && <img src={imageUrl} alt="" className="wl-form-preview" />}
-          <input
-            type="number"
-            placeholder="price (optional)"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-          />
-          <label className="wl-checkbox-label">
-            <input
-              type="checkbox"
-              checked={mostWanted}
-              onChange={(e) => setMostWanted(e.target.checked)}
-            />
-            Most wanted
-          </label>
-          <input
-            type="text"
-            placeholder="notes (optional)"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-          />
-          <button type="submit" disabled={submitting}>
-            {submitting ? 'Adding...' : 'Add item'}
-          </button>
-        </form>
+
+          <Modal open={showAddModal} onClose={() => setShowAddModal(false)} title="Add a wish">
+            {error && <p className="wl-error">{error}</p>}
+            <form className="wl-form" onSubmit={handleCreate}>
+              <input
+                type="text"
+                placeholder="item name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+              <input
+                type="url"
+                placeholder="product url (optional)"
+                value={productUrl}
+                onChange={(e) => setProductUrl(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={fetchPreview}
+                disabled={!productUrl.trim() || fetchingPreview}
+              >
+                {fetchingPreview ? 'Fetching...' : 'Fetch details'}
+              </button>
+              {imageUrl && <img src={imageUrl} alt="" className="wl-form-preview" />}
+              <input
+                type="number"
+                placeholder="price (optional)"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+              />
+              <label className="wl-checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={mostWanted}
+                  onChange={(e) => setMostWanted(e.target.checked)}
+                />
+                Most wanted
+              </label>
+              <input
+                type="text"
+                placeholder="notes (optional)"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+              <button type="submit" disabled={submitting}>
+                {submitting ? 'Adding...' : 'Add item'}
+              </button>
+            </form>
+          </Modal>
+        </>
       )}
 
       {error && <p className="wl-error">{error}</p>}
@@ -507,10 +693,35 @@ export default function WishlistDetail() {
               {item.priority != null && (
                 <span className="wl-list-item-priority">Most wanted</span>
               )}
+              {!hidePurchasedDetail && (
+                <span className="wl-list-item-claim">
+                  {item.claimed_by == null ? (
+                    <button type="button" onClick={() => claimItem(item)}>
+                      Claim
+                    </button>
+                  ) : item.claimed_by === userId ? (
+                    <>
+                      <span>Claimed by you</span>
+                      <button type="button" onClick={() => releaseItem(item)}>
+                        Release
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <span>Claimed by {names[item.claimed_by] ?? '...'}</span>
+                      {isOwner && (
+                        <button type="button" onClick={() => releaseItem(item)}>
+                          Clear
+                        </button>
+                      )}
+                    </>
+                  )}
+                </span>
+              )}
               <span className="wl-list-item-date">
                 added {new Date(item.added_at).toLocaleDateString()}
               </span>
-              {isOwner && (
+              {(isOwner || (isEditor && item.user_id === userId)) && (
                 <>
                   <button type="button" onClick={() => startEdit(item)}>
                     Edit
@@ -520,6 +731,47 @@ export default function WishlistDetail() {
                   </button>
                 </>
               )}
+              {(() => {
+                const itemContribs = contributionsByItem.get(item.item_id) ?? []
+                const total = itemContribs.reduce((sum, c) => sum + c.amount, 0)
+                const myContrib = itemContribs.find((c) => c.user_id === userId)
+                return (
+                  <div className="wl-list-item-contributions">
+                    {(total > 0 || item.price != null) && (
+                      <span>
+                        ${total}
+                        {item.price != null ? ` of $${item.price} pledged` : ' pledged'}
+                      </span>
+                    )}
+                    {!hidePurchasedDetail &&
+                      itemContribs.map((c) => (
+                        <span key={c.contribution_id} className="wl-contributor">
+                          {c.username}: ${c.amount}
+                        </span>
+                      ))}
+                    {!isOwner && (
+                      <span className="wl-pledge-form">
+                        <input
+                          type="number"
+                          placeholder="pledge $"
+                          value={pledgeInputs[item.item_id] ?? ''}
+                          onChange={(e) =>
+                            setPledgeInputs((prev) => ({ ...prev, [item.item_id]: e.target.value }))
+                          }
+                        />
+                        <button type="button" onClick={() => pledge(item)}>
+                          {myContrib ? 'Update pledge' : 'Pledge'}
+                        </button>
+                        {myContrib && (
+                          <button type="button" onClick={() => removePledge(item)}>
+                            Remove
+                          </button>
+                        )}
+                      </span>
+                    )}
+                  </div>
+                )
+              })()}
             </li>
           ),
         )}
@@ -533,6 +785,13 @@ export default function WishlistDetail() {
             {members.map((m) => (
               <li key={m.member_id} className="wl-list-item">
                 <span>{m.username}</span>
+                <span className="wl-role-badge">{m.role}</span>
+                <button
+                  type="button"
+                  onClick={() => setMemberRole(m, m.role === 'editor' ? 'viewer' : 'editor')}
+                >
+                  {m.role === 'editor' ? 'Make viewer' : 'Make editor'}
+                </button>
                 <button type="button" onClick={() => removeMember(m)}>
                   Remove
                 </button>

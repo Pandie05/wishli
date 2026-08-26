@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import Modal from '../components/Modal'
 import '../css/dashboard-temp.css'
 
 type Wishlist = {
@@ -28,6 +29,7 @@ export default function Dashboard() {
   const [visibility, setVisibility] = useState<'full' | 'aggregate'>('full')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [showAddModal, setShowAddModal] = useState(false)
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
@@ -135,6 +137,7 @@ export default function Dashboard() {
     setBudget('')
     setVisibility('full')
     setSubmitting(false)
+    setShowAddModal(false)
   }
 
   function startEdit(w: Wishlist) {
@@ -227,30 +230,37 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <form className="dash-form" onSubmit={handleCreate}>
-        <input
-          type="text"
-          placeholder="wishlist name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <input
-          type="number"
-          placeholder="budget (optional)"
-          value={budget}
-          onChange={(e) => setBudget(e.target.value)}
-        />
-        <select
-          value={visibility}
-          onChange={(e) => setVisibility(e.target.value as 'full' | 'aggregate')}
-        >
-          <option value="full">Full purchase visibility</option>
-          <option value="aggregate">Aggregate only (hide from me)</option>
-        </select>
-        <button type="submit" disabled={submitting}>
-          {submitting ? 'Adding...' : 'Add wishlist'}
-        </button>
-      </form>
+      <button type="button" onClick={() => setShowAddModal(true)}>
+        + Add wishlist
+      </button>
+
+      <Modal open={showAddModal} onClose={() => setShowAddModal(false)} title="Create a wishlist">
+        {error && <p className="dash-error">{error}</p>}
+        <form className="dash-form" onSubmit={handleCreate}>
+          <input
+            type="text"
+            placeholder="wishlist name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <input
+            type="number"
+            placeholder="budget (optional)"
+            value={budget}
+            onChange={(e) => setBudget(e.target.value)}
+          />
+          <select
+            value={visibility}
+            onChange={(e) => setVisibility(e.target.value as 'full' | 'aggregate')}
+          >
+            <option value="full">Full purchase visibility</option>
+            <option value="aggregate">Aggregate only (hide from me)</option>
+          </select>
+          <button type="submit" disabled={submitting}>
+            {submitting ? 'Adding...' : 'Add wishlist'}
+          </button>
+        </form>
+      </Modal>
 
       {error && <p className="dash-error">{error}</p>}
 

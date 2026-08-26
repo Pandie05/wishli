@@ -1,0 +1,87 @@
+/* delete once the real modal design lands */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 14, 0.5);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 100;
+}
+
+.modal-panel {
+  width: 100%;
+  max-width: 560px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-raised);
+  color: var(--heading);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card-hover);
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--heading);
+}
+
+.modal-close {
+  padding: 0.25rem 0.55rem;
+  border: none;
+  background: none;
+  font-size: 1.2rem;
+  line-height: 1;
+  color: var(--muted);
+}
+
+.modal-close:hover {
+  color: var(--heading);
+  border: none;
+}
+
+/* the part that actually scrolls when the form has more fields than fit --
+   min-height: 0 is what lets a flex child shrink below its content size and
+   scroll instead of forcing the whole panel taller than the viewport */
+.modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+
+.modal-body form,
+.modal-body .wl-form,
+.modal-body .dash-form {
+  margin: 0;
+}
+
+/* wider modal means related fields (url + fetch button, price + priority)
+   can share a row via the form's own flex-wrap instead of every field
+   forcing its own line -- only the dashboard's create-wishlist fields stay
+   one-per-row since there are just three of them and it reads fine stacked */
+.modal-body .dash-form input,
+.modal-body .dash-form select {
+  min-width: 0;
+  width: 100%;
+}
+
+.modal-body button[type='submit'] {
+  width: 100%;
+  margin-top: 0.25rem;
+}
