@@ -1,27 +1,104 @@
+/* shared design tokens -- the palette here matches the accent/neutrals
+   already established in auth.css so the app pages read as one product
+   instead of a designed login bolted onto plain crud screens */
+:root {
+  --accent: #7a86de;
+  --accent-hover: #6975d2;
+  --accent-soft: #eef0fc;
+  --danger: #d24a52;
+  --danger-soft: #fbeaec;
+  --success: #3f8f6b;
+
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --border: #e3e3ea;
+  --heading: #14141a;
+  --label: #44444f;
+  --muted: #9b9ba7;
+  --placeholder: #b6b6c1;
+  --page-bg: #f6f6fb;
+
+  --radius-sm: 6px;
+  --radius-md: 9px;
+  --radius-lg: 16px;
+  --shadow-card: 0 1px 2px rgba(20, 20, 26, 0.04), 0 8px 24px -16px rgba(20, 20, 26, 0.12);
+  --shadow-card-hover: 0 4px 10px rgba(20, 20, 26, 0.06), 0 16px 32px -16px rgba(20, 20, 26, 0.18);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --accent: #8d97e6;
+    --accent-hover: #a2abec;
+    --accent-soft: #232544;
+    --danger: #e2707a;
+    --danger-soft: #3a2226;
+    --success: #6fcf97;
+
+    --surface: #1b1c22;
+    --surface-raised: #212229;
+    --border: #33333d;
+    --heading: #f2f2f5;
+    --label: #cfcfd6;
+    --muted: #8b8b96;
+    --placeholder: #6c6c78;
+    --page-bg: #101014;
+
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -16px rgba(0, 0, 0, 0.5);
+    --shadow-card-hover: 0 4px 10px rgba(0, 0, 0, 0.35), 0 16px 32px -16px rgba(0, 0, 0, 0.6);
+  }
+}
+
 body {
   margin: 0;
+  background: var(--page-bg);
+  color: var(--heading);
   font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
 }
 
-/* neutral baseline so buttons/inputs read as clickable UI instead of raw
-   browser defaults -- intentionally unopinionated on color/branding, that's
-   for the real design pass */
-button {
-  font: inherit;
-  padding: 0.45rem 0.9rem;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  background: #f5f5f5;
-  cursor: pointer;
+a {
+  color: var(--accent);
 }
 
-button:hover {
-  background: #ebebeb;
+/* neutral baseline so buttons/inputs read as clickable ui even before a page
+   applies its own classes -- submit buttons default to the primary/filled
+   treatment since every form's submit is its main action, everything else
+   (edit/delete/cancel/etc, all type="button") stays a quieter secondary
+   style so the two are easy to tell apart without touching every callsite */
+button {
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: 0.55rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  color: var(--label);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--muted);
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 button:disabled {
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: not-allowed;
+}
+
+button[type='submit'] {
+  border-color: transparent;
+  background: var(--accent);
+  color: #fff;
+}
+
+button[type='submit']:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: transparent;
 }
 
 input,
@@ -29,19 +106,39 @@ select {
   font: inherit;
 }
 
-@media (prefers-color-scheme: dark) {
-  body {
-    background: #16171a;
-    color: #eee;
-  }
+input[type='text'],
+input[type='email'],
+input[type='password'],
+input[type='number'],
+input[type='url'],
+select {
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--heading);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
 
-  button {
-    background: #2a2a2a;
-    border-color: #444;
-    color: #eee;
-  }
+input[type='text']::placeholder,
+input[type='email']::placeholder,
+input[type='password']::placeholder,
+input[type='number']::placeholder,
+input[type='url']::placeholder {
+  color: var(--placeholder);
+}
 
-  button:hover {
-    background: #333;
-  }
+input[type='text']:focus,
+input[type='email']:focus,
+input[type='password']:focus,
+input[type='number']:focus,
+input[type='url']:focus,
+select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+input[type='checkbox'] {
+  accent-color: var(--accent);
 }

@@ -2,7 +2,6 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import GoogleButton from '../components/GoogleButton'
 
 const BAD_CREDENTIALS = 'Incorrect email/username or password.'
 

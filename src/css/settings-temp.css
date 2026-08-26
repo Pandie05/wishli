@@ -1,96 +1,96 @@
-/* throwaway styling, delete once the real settings design lands
-
-TO BE DELETED AND STYLED BY JAYDEN
-
-*/
+/* delete once the real settings design lands -- built on the shared tokens
+   in index.css, so it already follows the auth pages' palette/radius */
 
 .set {
-  max-width: 640px;
+  max-width: 560px;
   margin: 0 auto;
-  padding: 2rem 1rem;
-  font-family: system-ui, sans-serif;
-  background: #fff;
-  color: #111;
+  padding: 2.5rem 1.5rem 4rem;
+}
+
+.set > a {
+  display: inline-block;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.set > a:hover {
+  color: var(--accent);
+}
+
+.set > a::before {
+  content: '← ';
+}
+
+.set > h1 {
+  margin: 0 0 1.5rem;
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--heading);
 }
 
 .set-section {
-  padding: 1rem;
+  padding: 1.25rem;
   margin-bottom: 1rem;
-  border: 1px solid #eee;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
 }
 
 .set-section h2 {
-  margin-top: 0;
+  margin: 0 0 1rem;
   font-size: 1rem;
+  font-weight: 600;
+  color: var(--heading);
 }
 
 .set-form {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.75rem;
+  gap: 0.9rem;
 }
 
 .set-field {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.3rem;
   width: 100%;
 }
 
 .set-field label {
   font-size: 0.8rem;
-  color: #666;
+  font-weight: 500;
+  color: var(--label);
 }
 
 .set-field input {
-  padding: 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: 6px;
+  width: 100%;
 }
 
 .set-error {
-  color: #c0392b;
-  margin-bottom: 0;
+  margin: 0;
+  padding: 0.55rem 0.8rem;
+  border-radius: var(--radius-md);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 0.85rem;
 }
 
 .set-notice {
-  color: #1e8449;
-  margin-bottom: 0;
+  margin: 0;
+  padding: 0.55rem 0.8rem;
+  border-radius: var(--radius-md);
+  background: rgba(63, 143, 107, 0.12);
+  color: var(--success);
+  font-size: 0.85rem;
 }
 
 .set-empty {
-  color: #999;
   margin: 0;
-}
-
-@media (prefers-color-scheme: dark) {
-  .set {
-    background: #16171a;
-    color: #eee;
-  }
-
-  .set-section {
-    border-color: #333;
-  }
-
-  .set-field input {
-    background: #222;
-    border-color: #444;
-    color: #eee;
-  }
-
-  .set-field label,
-  .set-empty {
-    color: #999;
-  }
-
-  .set-notice {
-    color: #6fcf97;
-  }
-
-  a {
-    color: #8ab4ff;
-  }
+  color: var(--muted);
+  font-size: 0.9rem;
 }
