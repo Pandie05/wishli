@@ -220,7 +220,7 @@ export default function Dashboard() {
         </div>
         <div className="dash-stat">
           <span className="dash-stat-value">
-            ${totalSpent} <span className="dash-stat-value-sub">/ ${totalBudget}</span>
+            ${totalSpent} <span className="dash-stat-value-sub">/ ${totalBudget.toFixed(2)}</span>
           </span>
           <span className="dash-stat-label">spent / budget</span>
         </div>
@@ -302,10 +302,10 @@ export default function Dashboard() {
               </span>
               {w.budget != null ? (
                 <span>
-                  ${itemTotals[w.wishlist_id] ?? 0} / ${w.budget}
+                  ${itemTotals[w.wishlist_id].toFixed(2) ?? 0} / ${w.budget.toFixed(2)}
                 </span>
               ) : (
-                (itemTotals[w.wishlist_id] ?? 0) > 0 && <span>${itemTotals[w.wishlist_id]} spent</span>
+                (itemTotals[w.wishlist_id] ?? 0) > 0 && <span>${itemTotals[w.wishlist_id].toFixed(2)} spent</span>
               )}
               <button type="button" onClick={() => startEdit(w)}>
                 Edit
@@ -331,10 +331,10 @@ export default function Dashboard() {
             </span>
             {w.budget != null ? (
               <span>
-                ${itemTotals[w.wishlist_id] ?? 0} / ${w.budget}
+                ${itemTotals[w.wishlist_id]?.toFixed(2) ?? 0} / ${w.budget.toFixed(2)}
               </span>
             ) : (
-              (itemTotals[w.wishlist_id] ?? 0) > 0 && <span>${itemTotals[w.wishlist_id]} spent</span>
+              (itemTotals[w.wishlist_id] ?? 0) > 0 && <span>${itemTotals[w.wishlist_id]?.toFixed(2)} spent</span>
             )}
           </li>
         ))}

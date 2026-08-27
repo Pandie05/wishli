@@ -193,8 +193,9 @@ export default function WishlistDetail() {
       const claimantIds = (rows ?? [])
         .map((r) => r.claimed_by)
         .filter((id): id is string => id != null)
+      const creatorIds = (rows ?? []).map((r) => r.user_id)
       const contributorIds = (contributionRows ?? []).map((c) => c.user_id)
-      const idsToResolve = [...new Set([...claimantIds, ...contributorIds])]
+      const idsToResolve = [...new Set([...claimantIds, ...creatorIds, ...contributorIds])]
 
       const nameEntries = await Promise.all(
         idsToResolve.map(async (id) => {
@@ -532,7 +533,7 @@ export default function WishlistDetail() {
         {wishlistBudget != null ? (
           <>
             <span className={overBudget ? 'wl-budget-label wl-budget-label--over' : 'wl-budget-label'}>
-              ${spent} of ${wishlistBudget}
+              ${spent.toFixed(2)} of ${wishlistBudget}
             </span>
             <div className="wl-budget-bar">
               <div
@@ -689,7 +690,7 @@ export default function WishlistDetail() {
               ) : (
                 <span>{item.name}</span>
               )}
-              {item.price != null && <span>${item.price}</span>}
+              {item.price != null && <span>${item.price.toFixed(2)}</span>}
               {item.priority != null && (
                 <span className="wl-list-item-priority">Most wanted</span>
               )}
@@ -719,7 +720,7 @@ export default function WishlistDetail() {
                 </span>
               )}
               <span className="wl-list-item-date">
-                added {new Date(item.added_at).toLocaleDateString()}
+                added by {names[item.user_id] ?? '(unknown)'} on {new Date(item.added_at).toLocaleDateString()}
               </span>
               {(isOwner || (isEditor && item.user_id === userId)) && (
                 <>
@@ -739,14 +740,14 @@ export default function WishlistDetail() {
                   <div className="wl-list-item-contributions">
                     {(total > 0 || item.price != null) && (
                       <span>
-                        ${total}
-                        {item.price != null ? ` of $${item.price} pledged` : ' pledged'}
+                        ${total.toFixed(2)}
+                        {item.price != null ? ` of $${item.price.toFixed(2)} pledged` : ' pledged'}
                       </span>
                     )}
                     {!hidePurchasedDetail &&
                       itemContribs.map((c) => (
                         <span key={c.contribution_id} className="wl-contributor">
-                          {c.username}: ${c.amount}
+                          {c.username}: ${c.amount.toFixed(2)}
                         </span>
                       ))}
                     {!isOwner && (
