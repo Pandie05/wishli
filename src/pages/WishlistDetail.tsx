@@ -1,28 +1,41 @@
-import { useEffect, useState } from 'react'
-import type { FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import type { CSSProperties } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { describeError } from '../lib/errors'
 import { supabase } from '../lib/supabase'
-import Modal from '../components/Modal'
-import '../css/wishlist-detail-temp.css'
+import { WISH_COLUMNS } from '../lib/types'
+import type { Contribution, Friend, WishItem, WishlistMember } from '../lib/types'
+import AddWishModal from '../components/AddWishModal'
+import { useShell } from '../components/AppShell'
+import ConfirmModal from '../components/ConfirmModal'
+import ManagePeopleModal from '../components/ManagePeopleModal'
+import WishDetailModal from '../components/WishDetailModal'
+import WishlistFormModal from '../components/WishlistFormModal'
+import type { WishlistRow } from '../components/WishlistFormModal'
+import '../css/wishlist-detail.css'
 
-type Item = {
-  item_id: string
-  user_id: string
-  name: string
-  product_url: string | null
-  image_url: string | null
-  price: number | null
-  notes: string | null
-  purchased: boolean
-  priority: number | null
-  claimed_by: string | null
-  claimed_at: string | null
-  added_at: string
+type Tab = 'all' | 'available' | 'reserved' | 'bought'
+type SortMode = 'priority' | 'price' | 'added'
+
+function money(value: number): string {
+  return `$${value.toLocaleString('en-US', {
+    minimumFractionDigits: value % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  })}`
 }
 
-type SortMode = 'priority' | 'added_asc' | 'added_desc' | 'price_asc' | 'price_desc'
+/** Same stable blue-family fallback the dashboard cards use. */
+function coverGradient(id: string): CSSProperties {
+  let hash = 0
+  for (let i = 0; i < id.length; i += 1) hash = (hash * 31 + id.charCodeAt(i)) >>> 0
+  const hue = 198 + (hash % 31)
+  return {
+    '--cover-a': `hsl(${hue} 30% 27%)`,
+    '--cover-b': `hsl(${(hue + 14) % 360} 34% 63%)`,
+  } as CSSProperties
+}
 
-function sortItems(items: Item[], mode: SortMode): Item[] {
+function sortWishes(items: WishItem[], mode: SortMode): WishItem[] {
   const sorted = [...items]
   switch (mode) {
     case 'priority':
@@ -31,796 +44,489 @@ function sortItems(items: Item[], mode: SortMode): Item[] {
           (b.priority ?? 0) - (a.priority ?? 0) ||
           new Date(b.added_at).getTime() - new Date(a.added_at).getTime(),
       )
-    case 'added_asc':
-      return sorted.sort((a, b) => new Date(a.added_at).getTime() - new Date(b.added_at).getTime())
-    case 'added_desc':
-      return sorted.sort((a, b) => new Date(b.added_at).getTime() - new Date(a.added_at).getTime())
-    case 'price_asc':
-      return sorted.sort((a, b) => (a.price ?? Infinity) - (b.price ?? Infinity))
-    case 'price_desc':
+    case 'price':
       return sorted.sort((a, b) => (b.price ?? -Infinity) - (a.price ?? -Infinity))
+    case 'added':
+      return sorted.sort(
+        (a, b) => new Date(b.added_at).getTime() - new Date(a.added_at).getTime(),
+      )
   }
-}
-
-type Member = {
-  member_id: string
-  user_id: string
-  username: string
-  role: 'viewer' | 'editor'
-}
-
-type Friend = {
-  id: string
-  username: string
-}
-
-type Contribution = {
-  contribution_id: string
-  item_id: string
-  user_id: string
-  username: string
-  amount: number
 }
 
 export default function WishlistDetail() {
-  const { wishlistId } = useParams<{ wishlistId: string }>()
+  const { wishlistId = '' } = useParams()
   const navigate = useNavigate()
+  const shell = useShell()
 
   const [userId, setUserId] = useState<string | null>(null)
-  const [wishlistName, setWishlistName] = useState('')
-  const [wishlistBudget, setWishlistBudget] = useState<number | null>(null)
-  const [purchaseVisibility, setPurchaseVisibility] = useState<'full' | 'aggregate'>('full')
-  const [ownerId, setOwnerId] = useState<string | null>(null)
-  const [items, setItems] = useState<Item[]>([])
-  const [members, setMembers] = useState<Member[]>([])
+  const [wishlist, setWishlist] = useState<WishlistRow | null>(null)
+  const [items, setItems] = useState<WishItem[]>([])
+  const [members, setMembers] = useState<WishlistMember[]>([])
   const [friends, setFriends] = useState<Friend[]>([])
-  const [selectedFriendId, setSelectedFriendId] = useState('')
-  const [sortMode, setSortMode] = useState<SortMode>('priority')
-  const [loading, setLoading] = useState(true)
-  const [myRole, setMyRole] = useState<'viewer' | 'editor' | null>(null)
-  const [names, setNames] = useState<Record<string, string>>({})
   const [contributions, setContributions] = useState<Contribution[]>([])
-  const [pledgeInputs, setPledgeInputs] = useState<Record<string, string>>({})
-
-  const [name, setName] = useState('')
-  const [productUrl, setProductUrl] = useState('')
-  const [imageUrl, setImageUrl] = useState<string | null>(null)
-  const [price, setPrice] = useState('')
-  const [mostWanted, setMostWanted] = useState(false)
-  const [notes, setNotes] = useState('')
+  const [names, setNames] = useState<Record<string, string>>({})
+  const [myRole, setMyRole] = useState<'viewer' | 'editor' | null>(null)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
-  const [fetchingPreview, setFetchingPreview] = useState(false)
-  const [showAddModal, setShowAddModal] = useState(false)
 
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editName, setEditName] = useState('')
-  const [editProductUrl, setEditProductUrl] = useState('')
-  const [editPrice, setEditPrice] = useState('')
-  const [editMostWanted, setEditMostWanted] = useState(false)
-  const [editNotes, setEditNotes] = useState('')
+  const [tab, setTab] = useState<Tab>('all')
+  const [sort, setSort] = useState<SortMode>('priority')
 
-  useEffect(() => {
-    let cancelled = false
+  const [viewing, setViewing] = useState<WishItem | null>(null)
+  const [editingWish, setEditingWish] = useState<WishItem | null>(null)
+  const [deletingWish, setDeletingWish] = useState<WishItem | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [editingList, setEditingList] = useState(false)
+  const [showPeople, setShowPeople] = useState(false)
 
-    async function load() {
-      const { data } = await supabase.auth.getUser()
-      const user = data.user
+  const load = useCallback(async () => {
+    const { data: auth } = await supabase.auth.getSession()
+    const user = auth.session?.user
+    if (!user) {
+      navigate('/login', { replace: true })
+      return
+    }
 
-      if (!user) {
-        if (!cancelled) navigate('/login', { replace: true })
-        return
-      }
+    setUserId(user.id)
 
-      // rls hides wishlists that aren't yours or shared with you, so a bad
-      // id just gets no row
-      const { data: wishlist } = await supabase
+    // one wave, not four: the friend list used to wait on everything above it
+    const [
+      { data: list, error: listError },
+      { data: itemRows, error: itemError },
+      { data: memberRows },
+      { data: contribRows },
+      { data: requests },
+    ] = await Promise.all([
+      supabase
         .from('wishlists')
-        .select('id, name, budget, purchase_visibility')
-        .eq('wishlist_id', wishlistId)
-        .single()
-
-      const { data: rows, error: fetchError } = await supabase
-        .from('items')
         .select(
-          'item_id, user_id, name, product_url, image_url, price, notes, purchased, priority, claimed_by, claimed_at, added_at',
+          'wishlist_id, id, name, budget, created_at, purchase_visibility, item_img, description, occasion, target_date',
         )
         .eq('wishlist_id', wishlistId)
-        .order('added_at', { ascending: false })
+        .single(),
+      supabase.from('items').select(WISH_COLUMNS).eq('wishlist_id', wishlistId),
+      supabase
+        .from('wishlist_members')
+        .select('member_id, user_id, role')
+        .eq('wishlist_id', wishlistId),
+      supabase.from('item_contributions').select('contribution_id, item_id, user_id, amount'),
+      supabase
+        .from('friend_requests')
+        .select('sender_id, receiver_id, status')
+        .eq('status', 'accepted'),
+    ])
 
-      const isOwner = wishlist?.id === user.id
+    setError(describeError(listError ?? itemError))
+    if (list) setWishlist(list as WishlistRow)
+    setItems((itemRows ?? []) as WishItem[])
+    setMembers(
+      (memberRows ?? []).map((m) => ({
+        member_id: m.member_id,
+        user_id: m.user_id,
+        username: '',
+        role: (m.role as 'viewer' | 'editor') ?? 'viewer',
+      })),
+    )
+    setContributions(
+      (contribRows ?? []).map((c) => ({
+        contribution_id: c.contribution_id,
+        item_id: c.item_id,
+        user_id: c.user_id,
+        amount: Number(c.amount),
+        username: '',
+      })),
+    )
+    setMyRole(
+      ((memberRows ?? []).find((m) => m.user_id === user.id)?.role as 'viewer' | 'editor') ?? null,
+    )
 
-      let memberRows: Member[] = []
-      let friendRows: Friend[] = []
-      let selfRole: 'viewer' | 'editor' | null = null
+    // the page is usable from here -- everything below is names, which only
+    // the people modal and the reserved-by line need, so it must not block
+    setLoading(false)
 
-      if (isOwner) {
-        const { data: memberships } = await supabase
-          .from('wishlist_members')
-          .select('member_id, user_id, role')
-          .eq('wishlist_id', wishlistId)
+    const memberIds = new Set((memberRows ?? []).map((m) => m.user_id))
+    const friendIds = [
+      ...new Set(
+        (requests ?? [])
+          .map((r) => (r.sender_id === user.id ? r.receiver_id : r.sender_id))
+          .filter((id) => id !== user.id),
+      ),
+    ]
 
-        memberRows = await Promise.all(
-          (memberships ?? []).map(async (m) => {
-            const { data: username } = await supabase.rpc('username_for_id', { id: m.user_id })
-            return {
-              member_id: m.member_id,
-              user_id: m.user_id,
-              username: username ?? '(unknown)',
-              role: (m.role as 'viewer' | 'editor') ?? 'viewer',
-            }
-          }),
-        )
+    const ids = new Set<string>(friendIds)
+    for (const m of memberRows ?? []) ids.add(m.user_id)
+    for (const c of contribRows ?? []) ids.add(c.user_id)
+    for (const i of itemRows ?? []) if (i.claimed_by) ids.add(i.claimed_by)
 
-        const { data: requests } = await supabase
-          .from('friend_requests')
-          .select('sender_id, receiver_id, status')
-          .eq('status', 'accepted')
-
-        const friendIds = (requests ?? []).map((r) =>
-          r.sender_id === user.id ? r.receiver_id : r.sender_id,
-        )
-        const memberIds = new Set(memberRows.map((m) => m.user_id))
-
-        friendRows = await Promise.all(
-          friendIds
-            .filter((id) => !memberIds.has(id))
-            .map(async (id) => {
-              const { data: username } = await supabase.rpc('username_for_id', { id })
-              return { id, username: username ?? '(unknown)' }
-            }),
-        )
-      } else {
-        const { data: selfMembership } = await supabase
-          .from('wishlist_members')
-          .select('role')
-          .eq('wishlist_id', wishlistId)
-          .eq('user_id', user.id)
-          .maybeSingle()
-
-        selfRole = (selfMembership?.role as 'viewer' | 'editor' | undefined) ?? null
-      }
-
-      const itemIds = (rows ?? []).map((r) => r.item_id)
-
-      const { data: contributionRows } = itemIds.length
-        ? await supabase
-            .from('item_contributions')
-            .select('contribution_id, item_id, user_id, amount')
-            .in('item_id', itemIds)
-        : { data: [] }
-
-      const claimantIds = (rows ?? [])
-        .map((r) => r.claimed_by)
-        .filter((id): id is string => id != null)
-      const creatorIds = (rows ?? []).map((r) => r.user_id)
-      const contributorIds = (contributionRows ?? []).map((c) => c.user_id)
-      const idsToResolve = [...new Set([...claimantIds, ...creatorIds, ...contributorIds])]
-
-      const nameEntries = await Promise.all(
-        idsToResolve.map(async (id) => {
-          const { data: username } = await supabase.rpc('username_for_id', { id })
-          return [id, username ?? '(unknown)'] as const
+    // rls on public.users only exposes your own row, so each name comes from
+    // the security-definer function -- they at least all go out together
+    const resolved = Object.fromEntries(
+      await Promise.all(
+        [...ids].map(async (id) => {
+          const { data: name } = await supabase.rpc('username_for_id', { id })
+          return [id, (name as string) ?? 'someone'] as const
         }),
-      )
-      const nameMap = Object.fromEntries(nameEntries)
+      ),
+    ) as Record<string, string>
 
-      const contributionsWithNames: Contribution[] = (contributionRows ?? []).map((c) => ({
-        ...c,
-        username: nameMap[c.user_id] ?? '(unknown)',
-      }))
-
-      if (!cancelled) {
-        setUserId(user.id)
-        setWishlistName(wishlist?.name ?? '')
-        setWishlistBudget(wishlist?.budget ?? null)
-        setPurchaseVisibility(wishlist?.purchase_visibility ?? 'full')
-        setOwnerId(wishlist?.id ?? null)
-        if (!fetchError) setItems(rows ?? [])
-        setMembers(memberRows)
-        setFriends(friendRows)
-        setMyRole(selfRole)
-        setNames(nameMap)
-        setContributions(contributionsWithNames)
-        setLoading(false)
-      }
-    }
-
-    load()
-    return () => {
-      cancelled = true
-    }
+    setNames(resolved)
+    setMembers((prev) => prev.map((m) => ({ ...m, username: resolved[m.user_id] ?? '' })))
+    setContributions((prev) => prev.map((c) => ({ ...c, username: resolved[c.user_id] ?? '' })))
+    setFriends(
+      friendIds
+        .filter((id) => !memberIds.has(id))
+        .map((id) => ({ id, username: resolved[id] ?? '' })),
+    )
   }, [navigate, wishlistId])
 
-  async function handleCreate(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (submitting || !userId) return
+  useEffect(() => {
+    load()
+  }, [load, shell.dataVersion])
 
-    const trimmed = name.trim()
-    if (!trimmed) {
-      setError('give it a name')
-      return
-    }
+  // the shell keeps its wishlists across navigations, so the header can be
+  // drawn from memory immediately instead of waiting on a round trip
+  useEffect(() => {
+    if (wishlist) return
+    const known = shell.wishlists.find((w) => w.wishlist_id === wishlistId)
+    if (known) setWishlist(known)
+  }, [shell.wishlists, wishlistId, wishlist])
 
-    setError(null)
-    setSubmitting(true)
+  const isOwner = !!userId && wishlist?.id === userId
+  const canEdit = isOwner || myRole === 'editor'
+  // the whole point of aggregate visibility: the owner is not told who
+  // reserved or bought what, only how much of the list is spoken for
+  const aggregate = isOwner && wishlist?.purchase_visibility === 'aggregate'
 
-    const { data, error: insertError } = await supabase
+  const counts = useMemo(() => {
+    const bought = items.filter((i) => i.purchased).length
+    const reserved = items.filter((i) => i.claimed_by && !i.purchased).length
+    return { all: items.length, bought, reserved, available: items.length - bought - reserved }
+  }, [items])
+
+  const spent = useMemo(() => items.reduce((sum, i) => sum + (i.price ?? 0), 0), [items])
+
+  const visible = useMemo(() => {
+    const filtered = aggregate
+      ? items
+      : items.filter((item) => {
+          if (tab === 'all') return true
+          if (tab === 'bought') return item.purchased
+          if (tab === 'reserved') return !!item.claimed_by && !item.purchased
+          return !item.claimed_by && !item.purchased
+        })
+    return sortWishes(filtered, sort)
+  }, [items, tab, sort, aggregate])
+
+  const contributionsFor = useCallback(
+    (itemId: string) => contributions.filter((c) => c.item_id === itemId),
+    [contributions],
+  )
+
+  async function deleteWish() {
+    if (!deletingWish || deleting) return
+    setDeleting(true)
+    const { error: failure } = await supabase
       .from('items')
-      .insert({
-        wishlist_id: wishlistId,
-        user_id: userId,
-        name: trimmed,
-        product_url: productUrl.trim() || null,
-        image_url: imageUrl,
-        price: price ? Number(price) : null,
-        priority: mostWanted ? 1 : null,
-        notes: notes.trim() || null,
-      })
-      .select(
-        'item_id, user_id, name, product_url, image_url, price, notes, purchased, priority, claimed_by, claimed_at, added_at',
-      )
-      .single()
-
-    if (insertError) {
-      setError(insertError.message)
-      setSubmitting(false)
-      return
-    }
-
-    setItems((prev) => [data, ...prev])
-    setName('')
-    setProductUrl('')
-    setImageUrl(null)
-    setPrice('')
-    setMostWanted(false)
-    setNotes('')
-    setSubmitting(false)
-    setShowAddModal(false)
-  }
-
-  async function fetchPreview() {
-    const url = productUrl.trim()
-    if (!url || fetchingPreview) return
-
-    setFetchingPreview(true)
-    setError(null)
-
-    const { data, error: fnError } = await supabase.functions.invoke('fetch-link-preview', {
-      body: { url },
-    })
-
-    setFetchingPreview(false)
-
-    if (fnError) {
-      setError('could not fetch details for that link')
-      return
-    }
-
-    if (data?.title && !name.trim()) setName(data.title)
-    if (data?.price != null) setPrice(String(data.price))
-    if (data?.image) setImageUrl(data.image)
-  }
-
-  function startEdit(item: Item) {
-    setEditingId(item.item_id)
-    setEditName(item.name)
-    setEditProductUrl(item.product_url ?? '')
-    setEditPrice(item.price != null ? String(item.price) : '')
-    setEditMostWanted(item.priority != null)
-    setEditNotes(item.notes ?? '')
-  }
-
-  function cancelEdit() {
-    setEditingId(null)
-  }
-
-  async function saveEdit(id: string) {
-    const trimmed = editName.trim()
-    if (!trimmed) return
-
-    const { data, error: updateError } = await supabase
-      .from('items')
-      .update({
-        name: trimmed,
-        product_url: editProductUrl.trim() || null,
-        price: editPrice ? Number(editPrice) : null,
-        priority: editMostWanted ? 1 : null,
-        notes: editNotes.trim() || null,
-      })
-      .eq('item_id', id)
-      .select(
-        'item_id, user_id, name, product_url, image_url, price, notes, purchased, priority, claimed_by, claimed_at, added_at',
-      )
-      .single()
-
-    if (updateError) {
-      setError(updateError.message)
-      return
-    }
-
-    setItems((prev) => prev.map((item) => (item.item_id === id ? data : item)))
-    setEditingId(null)
-  }
-
-  async function togglePurchased(item: Item) {
-    // members can only flip this one column, not edit the item, so this goes
-    // through a function instead of a direct table update
-    const { error: rpcError } = await supabase.rpc('set_item_purchased', {
-      item_id: item.item_id,
-      purchased: !item.purchased,
-    })
-
-    if (rpcError) {
-      setError(rpcError.message)
-      return
-    }
-
-    setItems((prev) =>
-      prev.map((i) => (i.item_id === item.item_id ? { ...i, purchased: !i.purchased } : i)),
-    )
-  }
-
-  async function claimItem(item: Item) {
-    const { error: rpcError } = await supabase.rpc('set_item_claimed', {
-      item_id: item.item_id,
-      claimed: true,
-    })
-
-    if (rpcError) {
-      setError(rpcError.message)
-      return
-    }
-
-    setItems((prev) =>
-      prev.map((i) =>
-        i.item_id === item.item_id ? { ...i, claimed_by: userId, claimed_at: new Date().toISOString() } : i,
-      ),
-    )
-  }
-
-  async function releaseItem(item: Item) {
-    const { error: rpcError } = await supabase.rpc('set_item_claimed', {
-      item_id: item.item_id,
-      claimed: false,
-    })
-
-    if (rpcError) {
-      setError(rpcError.message)
-      return
-    }
-
-    setItems((prev) =>
-      prev.map((i) => (i.item_id === item.item_id ? { ...i, claimed_by: null, claimed_at: null } : i)),
-    )
-  }
-
-  async function setMemberRole(member: Member, role: 'viewer' | 'editor') {
-    const { error: rpcError } = await supabase.rpc('set_wishlist_member_role', {
-      wishlist_id: wishlistId,
-      user_id: member.user_id,
-      role,
-    })
-
-    if (rpcError) {
-      setError(rpcError.message)
-      return
-    }
-
-    setMembers((prev) => prev.map((m) => (m.member_id === member.member_id ? { ...m, role } : m)))
-  }
-
-  async function pledge(item: Item) {
-    const amount = Number(pledgeInputs[item.item_id])
-    if (!userId || !amount || amount <= 0) return
-
-    const { data, error: upsertError } = await supabase
-      .from('item_contributions')
-      .upsert(
-        { item_id: item.item_id, user_id: userId, amount },
-        { onConflict: 'item_id,user_id' },
-      )
-      .select('contribution_id, item_id, user_id, amount')
-      .single()
-
-    if (upsertError) {
-      setError(upsertError.message)
-      return
-    }
-
-    setContributions((prev) => [
-      ...prev.filter((c) => !(c.item_id === item.item_id && c.user_id === userId)),
-      { ...data, username: 'you' },
-    ])
-    setPledgeInputs((prev) => ({ ...prev, [item.item_id]: '' }))
-  }
-
-  async function removePledge(item: Item) {
-    if (!userId) return
-
-    const { error: deleteError } = await supabase
-      .from('item_contributions')
       .delete()
-      .eq('item_id', item.item_id)
-      .eq('user_id', userId)
+      .eq('item_id', deletingWish.item_id)
+    setDeleting(false)
 
-    if (deleteError) {
-      setError(deleteError.message)
+    if (failure) {
+      setError(failure.message)
       return
     }
 
-    setContributions((prev) => prev.filter((c) => !(c.item_id === item.item_id && c.user_id === userId)))
+    setDeletingWish(null)
+    setViewing(null)
+    shell.refresh()
   }
 
-  async function addMember() {
-    if (!selectedFriendId) return
-
-    const { data, error: insertError } = await supabase
-      .from('wishlist_members')
-      .insert({ wishlist_id: wishlistId, user_id: selectedFriendId })
-      .select('member_id, user_id, role')
-      .single()
-
-    if (insertError) {
-      setError(insertError.message)
-      return
-    }
-
-    const friend = friends.find((f) => f.id === selectedFriendId)
-    setMembers((prev) => [
-      ...prev,
-      {
-        member_id: data.member_id,
-        user_id: data.user_id,
-        username: friend?.username ?? '',
-        role: (data.role as 'viewer' | 'editor') ?? 'viewer',
-      },
-    ])
-    setFriends((prev) => prev.filter((f) => f.id !== selectedFriendId))
-    setSelectedFriendId('')
-  }
-
-  async function removeMember(member: Member) {
-    const { error: deleteError } = await supabase
-      .from('wishlist_members')
-      .delete()
-      .eq('member_id', member.member_id)
-
-    if (deleteError) {
-      setError(deleteError.message)
-      return
-    }
-
-    setMembers((prev) => prev.filter((m) => m.member_id !== member.member_id))
-    setFriends((prev) => [...prev, { id: member.user_id, username: member.username }])
-  }
-
-  async function deleteItem(id: string) {
-    if (!window.confirm('Delete this item?')) return
-
-    const { error: deleteError } = await supabase.from('items').delete().eq('item_id', id)
-    if (deleteError) {
-      setError(deleteError.message)
-      return
-    }
-
-    setItems((prev) => prev.filter((item) => item.item_id !== id))
-  }
-
-  if (loading) return <p>Loading...</p>
-
-  const isOwner = ownerId !== null && ownerId === userId
-  const isEditor = myRole === 'editor'
-  const spent = items.reduce((sum, item) => sum + (item.price ?? 0), 0)
-  const overBudget = wishlistBudget != null && spent > wishlistBudget
-  // owner opted into not spoiling their own surprise -- members still see
-  // full detail regardless, this only affects what the owner sees
-  const hidePurchasedDetail = isOwner && purchaseVisibility === 'aggregate'
-  const purchasedCount = items.filter((item) => item.purchased).length
-  const sortedItems = sortItems(items, sortMode)
-
-  const contributionsByItem = new Map<string, Contribution[]>()
-  for (const c of contributions) {
-    contributionsByItem.set(c.item_id, [...(contributionsByItem.get(c.item_id) ?? []), c])
-  }
+  const spokenFor = counts.reserved + counts.bought
 
   return (
-    <div className="wl-detail">
-      <Link to="/dashboard">back to dashboard</Link>
-      <h1>{wishlistName || 'Wishlist'}</h1>
+    <div className="wl">
+      <header className="wl-head">
+        <div className="wl-cover" style={coverGradient(wishlistId)}>
+          {wishlist?.item_img && <img src={wishlist.item_img} alt="" />}
+        </div>
 
-      <div className="wl-budget">
-        {wishlistBudget != null ? (
-          <>
-            <span className={overBudget ? 'wl-budget-label wl-budget-label--over' : 'wl-budget-label'}>
-              ${spent.toFixed(2)} of ${wishlistBudget}
-            </span>
-            <div className="wl-budget-bar">
-              <div
-                className={overBudget ? 'wl-budget-bar-fill wl-budget-bar-fill--over' : 'wl-budget-bar-fill'}
-                style={{ width: `${Math.min((spent / wishlistBudget) * 100, 100)}%` }}
-              />
+        <div className="wl-headline">
+          <p className="wl-eyebrow">
+            <Link to="/dashboard">Wishlists</Link> / {wishlist?.name ?? '...'}
+          </p>
+          <h1 className="wl-title">{wishlist?.name ?? ' '}</h1>
+          {wishlist?.description && <p className="wl-desc">{wishlist.description}</p>}
+
+          <div className="wl-headfoot">
+            <div className="wl-facts">
+              <div className="wl-fact">
+                <span className="wl-fact-label">Total cost</span>
+                <span className="wl-fact-value">
+                  {loading ? '—' : money(spent)}
+                  {wishlist?.budget != null && <small>/ {money(wishlist.budget)}</small>}
+                </span>
+              </div>
+
+              <div className="wl-fact">
+                <span className="wl-fact-label">Items</span>
+                <span className="wl-fact-value">{loading ? '—' : items.length}</span>
+              </div>
+
+              <button type="button" className="wl-fact" onClick={() => setShowPeople(true)}>
+                <span className="wl-fact-label">Friends</span>
+                <span className="wl-fact-value">
+                  <span className="wl-faces">
+                    {members.slice(0, 3).map((m, i) => (
+                      <span key={m.member_id} className={`wl-face wl-face--n${i + 1}`} />
+                    ))}
+                  </span>
+                  {members.length === 0
+                    ? 'Just you'
+                    : `${members.length} friend${members.length === 1 ? '' : 's'}`}
+                </span>
+              </button>
             </div>
-          </>
-        ) : (
-          <span className="wl-budget-label">${spent} spent (no budget set)</span>
-        )}
-      </div>
 
-      {(isOwner || isEditor) && (
-        <>
-          <button type="button" onClick={() => setShowAddModal(true)}>
-            + Add wish
-          </button>
-
-          <Modal open={showAddModal} onClose={() => setShowAddModal(false)} title="Add a wish">
-            {error && <p className="wl-error">{error}</p>}
-            <form className="wl-form" onSubmit={handleCreate}>
-              <input
-                type="text"
-                placeholder="item name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-              <input
-                type="url"
-                placeholder="product url (optional)"
-                value={productUrl}
-                onChange={(e) => setProductUrl(e.target.value)}
-              />
+            <div className="wl-headactions">
+              {/* visual only for now -- public share links would need a share
+                  token and a read policy that does not require a session. use
+                  Manage people to let someone in. */}
               <button
                 type="button"
-                onClick={fetchPreview}
-                disabled={!productUrl.trim() || fetchingPreview}
+                disabled
+                title="Public share links are not available yet — invite people from Manage people instead."
               >
-                {fetchingPreview ? 'Fetching...' : 'Fetch details'}
+                Share link
               </button>
-              {imageUrl && <img src={imageUrl} alt="" className="wl-form-preview" />}
-              <input
-                type="number"
-                placeholder="price (optional)"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-              />
-              <label className="wl-checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={mostWanted}
-                  onChange={(e) => setMostWanted(e.target.checked)}
-                />
-                Most wanted
-              </label>
-              <input
-                type="text"
-                placeholder="notes (optional)"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-              />
-              <button type="submit" disabled={submitting}>
-                {submitting ? 'Adding...' : 'Add item'}
+
+              {isOwner && (
+                <button type="button" onClick={() => setEditingList(true)}>
+                  Edit list
+                </button>
+              )}
+
+              {canEdit && (
+                <button
+                  type="button"
+                  className="wl-add"
+                  onClick={() => shell.openAddWish({ wishlistId })}
+                >
+                  + Add wish
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* leaves the wishlist the same way the breadcrumb does. it goes to
+            the dashboard rather than back through history, so it behaves the
+            same on a deep link or a refresh as it does mid-session. */}
+        <button
+          type="button"
+          className="wl-close"
+          onClick={() => navigate('/dashboard')}
+          aria-label="Close this wishlist"
+          title="Back to your wishlists"
+        >
+          &times;
+        </button>
+      </header>
+
+      <div className="wl-bar">
+        {aggregate ? (
+          <span className="wl-aggregate">
+            {spokenFor} of {counts.all} spoken for
+          </span>
+        ) : (
+          <div className="wl-tabs">
+            {(
+              [
+                ['all', 'All', counts.all],
+                ['available', 'Available', counts.available],
+                ['reserved', 'Reserved', counts.reserved],
+                ['bought', 'Bought', counts.bought],
+              ] as const
+            ).map(([key, label, count]) => (
+              <button
+                key={key}
+                type="button"
+                className={tab === key ? 'wl-tab wl-tab--on' : 'wl-tab'}
+                onClick={() => setTab(key)}
+              >
+                {label}
+                <span className="wl-tab-count">{count}</span>
               </button>
-            </form>
-          </Modal>
-        </>
-      )}
+            ))}
+          </div>
+        )}
+
+        <div className="wl-sorts">
+          <span className="wl-sorts-label">Sort</span>
+          {(
+            [
+              ['priority', 'Priority'],
+              ['price', 'Price'],
+              ['added', 'Added'],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              className={sort === key ? 'wl-sort wl-sort--on' : 'wl-sort'}
+              onClick={() => setSort(key)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {error && <p className="wl-error">{error}</p>}
 
-      {hidePurchasedDetail && (
-        <p className="wl-budget-label">
-          {purchasedCount} of {items.length} items claimed
-        </p>
-      )}
-
-      <div className="wl-sort">
-        <label htmlFor="wl-sort-select">Sort by</label>
-        <select
-          id="wl-sort-select"
-          value={sortMode}
-          onChange={(e) => setSortMode(e.target.value as SortMode)}
-        >
-          <option value="priority">Most wanted first</option>
-          <option value="added_desc">Newest added</option>
-          <option value="added_asc">Oldest added</option>
-          <option value="price_asc">Price: low to high</option>
-          <option value="price_desc">Price: high to low</option>
-        </select>
-      </div>
-
-      <ul className="wl-list">
-        {sortedItems.map((item) =>
-          editingId === item.item_id ? (
-            <li key={item.item_id} className="wl-list-item wl-list-item--editing">
-              <input
-                type="text"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-              />
-              <input
-                type="url"
-                value={editProductUrl}
-                onChange={(e) => setEditProductUrl(e.target.value)}
-              />
-              <input
-                type="number"
-                value={editPrice}
-                onChange={(e) => setEditPrice(e.target.value)}
-              />
-              <label className="wl-checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={editMostWanted}
-                  onChange={(e) => setEditMostWanted(e.target.checked)}
-                />
-                Most wanted
-              </label>
-              <input
-                type="text"
-                value={editNotes}
-                onChange={(e) => setEditNotes(e.target.value)}
-              />
-              <button type="button" onClick={() => saveEdit(item.item_id)}>
-                Save
-              </button>
-              <button type="button" onClick={cancelEdit}>
-                Cancel
-              </button>
-            </li>
-          ) : (
-            <li
-              key={item.item_id}
-              className={
-                item.purchased && !hidePurchasedDetail
-                  ? 'wl-list-item wl-list-item--purchased'
-                  : 'wl-list-item'
-              }
-            >
-              {!hidePurchasedDetail && (
-                <input
-                  type="checkbox"
-                  checked={item.purchased}
-                  onChange={() => togglePurchased(item)}
-                />
-              )}
-              {item.image_url && <img src={item.image_url} alt="" className="wl-list-item-thumb" />}
-              {item.product_url ? (
-                <a href={item.product_url} target="_blank" rel="noreferrer">
-                  {item.name}
-                </a>
+      <ul className="wl-grid">
+        {visible.map((item) => (
+          <li key={item.item_id} className="wl-card">
+            <div className="wl-card-media">
+              {item.image_url ? (
+                <img src={item.image_url} alt="" loading="lazy" />
               ) : (
-                <span>{item.name}</span>
-              )}
-              {item.price != null && <span>${item.price.toFixed(2)}</span>}
-              {item.priority != null && (
-                <span className="wl-list-item-priority">Most wanted</span>
-              )}
-              {!hidePurchasedDetail && (
-                <span className="wl-list-item-claim">
-                  {item.claimed_by == null ? (
-                    <button type="button" onClick={() => claimItem(item)}>
-                      Claim
-                    </button>
-                  ) : item.claimed_by === userId ? (
-                    <>
-                      <span>Claimed by you</span>
-                      <button type="button" onClick={() => releaseItem(item)}>
-                        Release
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <span>Claimed by {names[item.claimed_by] ?? '...'}</span>
-                      {isOwner && (
-                        <button type="button" onClick={() => releaseItem(item)}>
-                          Clear
-                        </button>
-                      )}
-                    </>
-                  )}
+                <span className="wl-card-blank">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <rect x="3" y="4.5" width="18" height="15" rx="2" />
+                    <circle cx="8.5" cy="10" r="1.6" />
+                    <path d="m4 17 5-4.5 4 3.5 3-2.5 4 3.5" strokeLinejoin="round" />
+                  </svg>
                 </span>
               )}
-              <span className="wl-list-item-date">
-                added by {names[item.user_id] ?? '(unknown)'} on {new Date(item.added_at).toLocaleDateString()}
-              </span>
-              {(isOwner || (isEditor && item.user_id === userId)) && (
-                <>
-                  <button type="button" onClick={() => startEdit(item)}>
-                    Edit
-                  </button>
-                  <button type="button" onClick={() => deleteItem(item.item_id)}>
-                    Delete
-                  </button>
-                </>
+
+              {!aggregate && (
+                <span
+                  className={
+                    item.purchased
+                      ? 'wl-chip wl-chip--bought'
+                      : item.claimed_by
+                        ? 'wl-chip wl-chip--reserved'
+                        : 'wl-chip'
+                  }
+                >
+                  {item.purchased ? 'Bought' : item.claimed_by ? 'Reserved' : 'Available'}
+                </span>
               )}
-              {(() => {
-                const itemContribs = contributionsByItem.get(item.item_id) ?? []
-                const total = itemContribs.reduce((sum, c) => sum + c.amount, 0)
-                const myContrib = itemContribs.find((c) => c.user_id === userId)
-                return (
-                  <div className="wl-list-item-contributions">
-                    {(total > 0 || item.price != null) && (
-                      <span>
-                        ${total.toFixed(2)}
-                        {item.price != null ? ` of $${item.price.toFixed(2)} pledged` : ' pledged'}
-                      </span>
-                    )}
-                    {!hidePurchasedDetail &&
-                      itemContribs.map((c) => (
-                        <span key={c.contribution_id} className="wl-contributor">
-                          {c.username}: ${c.amount.toFixed(2)}
-                        </span>
-                      ))}
-                    {!isOwner && (
-                      <span className="wl-pledge-form">
-                        <input
-                          type="number"
-                          placeholder="pledge $"
-                          value={pledgeInputs[item.item_id] ?? ''}
-                          onChange={(e) =>
-                            setPledgeInputs((prev) => ({ ...prev, [item.item_id]: e.target.value }))
-                          }
-                        />
-                        <button type="button" onClick={() => pledge(item)}>
-                          {myContrib ? 'Update pledge' : 'Pledge'}
-                        </button>
-                        {myContrib && (
-                          <button type="button" onClick={() => removePledge(item)}>
-                            Remove
-                          </button>
-                        )}
-                      </span>
-                    )}
-                  </div>
-                )
-              })()}
-            </li>
-          ),
+
+              {item.product_url && (
+                <a
+                  className="wl-card-open"
+                  href={item.product_url}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  aria-label={`Open the product page for ${item.name}`}
+                >
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6">
+                    <path d="M6 10 10.5 5.5M6.5 5.5h4.5V10" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </a>
+              )}
+            </div>
+
+            <div className="wl-card-title">
+              <span className="wl-card-name">{item.name}</span>
+              {item.price != null && <span className="wl-card-price">{money(item.price)}</span>}
+            </div>
+
+            {item.notes && <p className="wl-card-note">{item.notes}</p>}
+
+            <div className="wl-card-actions">
+              <button type="button" onClick={() => setViewing(item)}>
+                View
+              </button>
+              {canEdit && (
+                <button type="button" onClick={() => setEditingWish(item)}>
+                  Edit
+                </button>
+              )}
+            </div>
+          </li>
+        ))}
+
+        {!loading && visible.length === 0 && (
+          <li className="wl-empty">
+            {items.length === 0 ? 'No wishes on this list yet.' : 'Nothing in this filter.'}
+          </li>
         )}
-        {items.length === 0 && <li className="wl-empty">no items yet</li>}
       </ul>
 
-      {isOwner && (
-        <>
-          <h2>Share</h2>
-          <ul className="wl-list">
-            {members.map((m) => (
-              <li key={m.member_id} className="wl-list-item">
-                <span>{m.username}</span>
-                <span className="wl-role-badge">{m.role}</span>
-                <button
-                  type="button"
-                  onClick={() => setMemberRole(m, m.role === 'editor' ? 'viewer' : 'editor')}
-                >
-                  {m.role === 'editor' ? 'Make viewer' : 'Make editor'}
-                </button>
-                <button type="button" onClick={() => removeMember(m)}>
-                  Remove
-                </button>
-              </li>
-            ))}
-            {members.length === 0 && <li className="wl-empty">not shared with anyone</li>}
-          </ul>
+      <WishDetailModal
+        open={!!viewing}
+        item={viewing}
+        userId={userId}
+        names={names}
+        contributions={viewing ? contributionsFor(viewing.item_id) : []}
+        hideDetail={aggregate}
+        canEdit={canEdit}
+        onClose={() => setViewing(null)}
+        onChanged={() => {
+          shell.refresh()
+          setViewing(null)
+        }}
+        onEdit={() => {
+          setEditingWish(viewing)
+          setViewing(null)
+        }}
+        onDelete={() => {
+          setDeletingWish(viewing)
+          setViewing(null)
+        }}
+      />
 
-          {friends.length > 0 && (
-            <div className="wl-form">
-              <select
-                value={selectedFriendId}
-                onChange={(e) => setSelectedFriendId(e.target.value)}
-              >
-                <option value="">choose a friend...</option>
-                {friends.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.username}
-                  </option>
-                ))}
-              </select>
-              <button type="button" onClick={addMember}>
-                Add
-              </button>
-            </div>
-          )}
-        </>
-      )}
+      <AddWishModal
+        open={!!editingWish}
+        item={editingWish}
+        userId={userId}
+        wishlists={wishlist ? [wishlist] : []}
+        presetWishlistId={wishlistId}
+        onClose={() => setEditingWish(null)}
+        onNeedWishlist={() => setEditingWish(null)}
+        onSaved={() => {
+          setEditingWish(null)
+          shell.refresh()
+        }}
+      />
+
+      <WishlistFormModal
+        open={editingList}
+        userId={userId}
+        wishlist={wishlist}
+        onClose={() => setEditingList(false)}
+        onSaved={(row) => {
+          setWishlist(row)
+          shell.refresh()
+        }}
+      />
+
+      <ManagePeopleModal
+        open={showPeople}
+        wishlistId={wishlistId}
+        members={members}
+        friends={friends}
+        isOwner={isOwner}
+        onClose={() => setShowPeople(false)}
+        onChanged={shell.refresh}
+      />
+
+      <ConfirmModal
+        open={!!deletingWish}
+        eyebrow="Delete wish"
+        title={deletingWish ? `Delete ${deletingWish.name}?` : 'Delete wish?'}
+        confirmLabel="Delete wish"
+        busy={deleting}
+        onConfirm={deleteWish}
+        onClose={() => setDeletingWish(null)}
+      >
+        <p className="modal-empty-lead">This cannot be undone.</p>
+        <p className="modal-empty-note">
+          It is removed from this wishlist for everyone who can see it.
+        </p>
+      </ConfirmModal>
     </div>
   )
 }

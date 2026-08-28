@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { USERNAME_TAKEN, usernameTaken, validateUsername } from '../lib/username'
 import '../css/settings-temp.css'
@@ -36,8 +36,8 @@ export default function Settings() {
         let cancelled = false
 
         async function load() {
-            const { data } = await supabase.auth.getUser()
-            const user = data.user
+            const { data } = await supabase.auth.getSession()
+            const user = data.session?.user
 
             if (!user) {
                 if (!cancelled) navigate('/login', { replace: true })
@@ -200,11 +200,8 @@ export default function Settings() {
         }
     }
 
-    if (loading) return <p>Loading...</p>
-
     return (
         <div className="set">
-            <Link to="/dashboard">back to dashboard</Link>
             <h1>Settings</h1>
 
             <section className="set-section">
@@ -221,7 +218,7 @@ export default function Settings() {
                             onChange={(e) => setUsername(e.target.value)}
                         />
                     </div>
-                    <button type="submit" disabled={savingUsername}>
+                    <button type="submit" disabled={savingUsername || loading}>
                         {savingUsername ? 'Saving...' : 'Save username'}
                     </button>
                 </form>
@@ -242,7 +239,7 @@ export default function Settings() {
                             onChange={(e) => setEmail(e.target.value)}
                         />
                     </div>
-                    <button type="submit" disabled={savingEmail}>
+                    <button type="submit" disabled={savingEmail || loading}>
                         {savingEmail ? 'Sending...' : 'Save email'}
                     </button>
                 </form>
@@ -287,7 +284,7 @@ export default function Settings() {
                                     onChange={(e) => setConfirmPassword(e.target.value)}
                                 />
                             </div>
-                            <button type="submit" disabled={savingPassword}>
+                            <button type="submit" disabled={savingPassword || loading}>
                                 {savingPassword ? 'Saving...' : 'Change password'}
                             </button>
                         </form>

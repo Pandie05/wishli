@@ -1,0 +1,373 @@
+/* The universal chrome: a fixed left rail that every signed-in page renders
+   inside. Everything here is hairlines and small uppercase type -- no cards,
+   no shadows -- so the page's own content is what carries the weight. */
+
+.shell {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  min-height: 100svh;
+  background: var(--page-bg);
+}
+
+.shell-nav {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100svh;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  padding: 28px 16px 18px;
+  border-right: 1px solid var(--border);
+  box-sizing: border-box;
+}
+
+/* ---- wordmark ---------------------------------------------------------- */
+
+.shell-mark {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  padding: 0 10px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  color: var(--heading);
+  text-decoration: none;
+}
+
+.shell-mark-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* ---- nav links --------------------------------------------------------- */
+
+.shell-links {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* the active row's background is this one element rather than a background on
+   the link itself, so changing route slides it to the new row instead of
+   repainting two of them. height and offset come from measuring the live
+   link in AppShell; only the movement is css. */
+.shell-pill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  border-radius: var(--radius-sm);
+  background: var(--navy);
+}
+
+.shell-pill[data-ready] {
+  transition: transform 340ms cubic-bezier(0.65, 0, 0.35, 1), opacity 180ms ease;
+}
+
+/* a route with no row of its own (a wishlist) fades the pill out where it
+   stands rather than parking it on an unrelated link */
+.shell-pill[data-off] {
+  opacity: 0;
+}
+
+/* both <Link>s and the two modal-opening <button>s live in this list, so the
+   button has to be stripped back to look like the links around it -- and the
+   anchors need border-box explicitly, since unlike a button they default to
+   content-box and would size to 100% *plus* their padding, overhanging the
+   rail's right border instead of being inset from it by the rail's padding */
+.shell-link {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  font: inherit;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  text-align: left;
+  text-decoration: none;
+  color: var(--label);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.shell-link svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  color: var(--muted);
+  transition: color 0.15s ease;
+}
+
+.shell-link:hover {
+  background: var(--surface-sunken);
+  color: var(--heading);
+}
+
+.shell-link:hover svg {
+  color: var(--label);
+}
+
+.shell-link--active,
+.shell-link--active:hover {
+  background: none;
+  color: #fff;
+}
+
+.shell-link--active svg,
+.shell-link--active:hover svg {
+  color: #fff;
+}
+
+.shell-link-badge {
+  margin-left: auto;
+  min-width: 17px;
+  padding: 1px 5px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-align: center;
+}
+
+.shell-link--active .shell-link-badge {
+  background: #fff;
+  color: var(--navy);
+}
+
+/* ---- user block -------------------------------------------------------- */
+
+.shell-user {
+  position: relative;
+  /* bleeds back out through the rail's padding so the rule above it touches
+     the window edge on the left and the rail's own border on the right */
+  margin: auto -16px 0;
+  padding: 16px 16px 0;
+  border-top: 1px solid var(--border);
+}
+
+.shell-user-button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.shell-user-button:hover {
+  background: var(--surface-sunken);
+}
+
+.shell-avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.shell-user-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.shell-user-name {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--heading);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shell-user-handle {
+  font-size: 0.6875rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shell-user-menu {
+  position: absolute;
+  bottom: calc(100% - 8px);
+  left: 8px;
+  right: 8px;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-pop);
+  z-index: 20;
+}
+
+.shell-user-menu button {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-align: left;
+  color: var(--label);
+}
+
+.shell-user-menu button:hover:not(:disabled) {
+  background: var(--surface-sunken);
+  border-color: transparent;
+  color: var(--danger);
+}
+
+/* ---- main region ------------------------------------------------------- */
+
+.shell-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- page transition --------------------------------------------------- */
+
+/* both pages are mounted at once mid-transition: the outgoing one is lifted
+   out of flow so the incoming one can take the space immediately. overflow-x
+   is clipped (not hidden) so the slide never makes a horizontal scrollbar
+   while leaving the cards' hover menus free to overflow downwards. */
+.page-stack {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-x: clip;
+}
+
+.page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.page--out {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* staggered rather than simultaneous: the outgoing page is gone before the
+   incoming one arrives, so the two never sit on top of each other at half
+   opacity. `backwards` holds the incoming page off-screen through the delay
+   instead of flashing it in place first. */
+@media (prefers-reduced-motion: no-preference) {
+  .page--out {
+    animation: page-out 170ms cubic-bezier(0.55, 0, 0.8, 0.4) forwards;
+  }
+
+  .page--in {
+    animation: page-in 260ms cubic-bezier(0.22, 0.7, 0.25, 1) 80ms backwards;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell-pill[data-ready] {
+    transition: opacity 180ms ease;
+  }
+}
+
+@keyframes page-in {
+  from {
+    transform: translateX(42px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes page-out {
+  from {
+    transform: none;
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-42px);
+    opacity: 0;
+  }
+}
+
+/* the pre-existing temp pages set their own max-width/margin, which still
+   centres correctly now that they sit in this column instead of the viewport */
+
+@media (max-width: 900px) {
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .shell-nav {
+    position: static;
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+
+  .shell-links {
+    flex-direction: row;
+  }
+
+  .shell-link {
+    width: auto;
+    white-space: nowrap;
+  }
+
+  .shell-user {
+    margin: 0 0 0 auto;
+    padding: 0;
+    border-top: 0;
+  }
+
+  .shell-user-menu {
+    bottom: auto;
+    top: calc(100% + 6px);
+    left: auto;
+    right: 0;
+    width: 150px;
+  }
+}

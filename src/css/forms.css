@@ -1,0 +1,73 @@
+/* Shared modal-form styling for the global add-wish / add-wishlist forms.
+   Labelled fields stacked in one column, since these modals ask for more than
+   the two or three inputs the old inline forms did. */
+
+.form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-field > span {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.form-field input,
+.form-field select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.form-row {
+  display: flex;
+  gap: 8px;
+}
+
+.form-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.form-row button {
+  flex: none;
+}
+
+.form-preview {
+  max-height: 140px;
+  align-self: flex-start;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.form-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  color: var(--label);
+}
+
+.form-error {
+  margin: 0 0 4px;
+  padding: 9px 12px;
+  border-radius: var(--radius-md);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 0.875rem;
+}
+
+.form-stack button[type='submit'] {
+  margin-top: 4px;
+  padding: 10px 16px;
+  font-weight: 600;
+}
