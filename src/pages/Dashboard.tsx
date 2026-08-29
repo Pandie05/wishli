@@ -315,7 +315,18 @@ export default function Dashboard() {
     }
 
     setQuickUrl('')
-    setQuickNote({ text: `Saved to ${target.name}`, ok: true })
+    // saving without a price or a picture is not a failure, but it is
+    // unfinished, and a one-line note is all the quick box has to say so with
+    const missing = [
+      preview?.priceUnavailable ? 'a price' : null,
+      preview?.imageUnavailable ? 'a picture' : null,
+    ].filter(Boolean)
+    setQuickNote({
+      text: missing.length
+        ? `Saved to ${target.name} — it still needs ${missing.join(' and ')}`
+        : `Saved to ${target.name}`,
+      ok: true,
+    })
     shell.refresh()
   }
 
