@@ -1,0 +1,677 @@
+/* Wishlist page — same editorial language as the dashboard: hairline rules
+   that run edge to edge, tiny letterspaced labels, one oversized title. */
+
+.wl {
+  --pad: 44px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- header ------------------------------------------------------------ */
+
+.wl-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 26px;
+  padding: 30px var(--pad) 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.wl-cover {
+  flex: none;
+  width: 280px;
+  aspect-ratio: 3 / 2;
+  border-radius: 8px;
+  overflow: hidden;
+  background: linear-gradient(150deg, var(--cover-a, #2b3f6b), var(--cover-b, #7ea0d8));
+}
+
+.wl-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.wl-headline {
+  flex: 1;
+  min-width: 0;
+}
+
+.wl-eyebrow {
+  margin: 0 0 7px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.wl-eyebrow a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.wl-eyebrow a:hover {
+  color: var(--heading);
+}
+
+.wl-title {
+  margin: 0;
+  font-size: clamp(2.1rem, 4vw, 3.5rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  color: var(--heading);
+}
+
+.wl-desc {
+  margin: 12px 0 0;
+  max-width: 62ch;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+/* matches the modals' close control, sitting in the top corner of the page */
+.wl-close {
+  flex: none;
+  align-self: flex-start;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: none;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--muted);
+}
+
+.wl-close:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  color: var(--heading);
+}
+
+/* facts and header buttons share the bottom line of the header */
+.wl-headfoot {
+  display: flex;
+  align-items: flex-end;
+  gap: 28px;
+  margin-top: 20px;
+}
+
+.wl-facts {
+  display: flex;
+  gap: 32px;
+}
+
+.wl-fact {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+
+.wl-fact-label {
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.wl-fact-value {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--heading);
+}
+
+.wl-fact-value small {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+button.wl-fact .wl-fact-value {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--label);
+}
+
+button.wl-fact:hover:not(:disabled) .wl-fact-value {
+  color: var(--accent);
+}
+
+.wl-faces {
+  display: flex;
+}
+
+.wl-face {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--page-bg);
+  background: var(--accent);
+}
+
+.wl-face + .wl-face {
+  margin-left: -6px;
+}
+
+.wl-face--n2 {
+  background: #7d93cf;
+}
+
+.wl-face--n3 {
+  background: #a9bade;
+}
+
+.wl-headactions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.wl-headactions button {
+  padding: 10px 15px;
+  border-radius: var(--radius-sm);
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.wl-headactions button:disabled {
+  opacity: 1;
+  color: var(--placeholder);
+  cursor: not-allowed;
+}
+
+.wl-headactions .wl-add {
+  border-color: transparent;
+  background: var(--accent);
+  color: #fff;
+}
+
+.wl-headactions .wl-add:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: transparent;
+}
+
+/* ---- filter / sort bar ------------------------------------------------- */
+
+.wl-bar {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 14px var(--pad);
+  border-bottom: 1px solid var(--border);
+}
+
+.wl-tabs,
+.wl-sorts {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+}
+
+.wl-sorts {
+  margin-left: auto;
+}
+
+.wl-tab,
+.wl-sort {
+  padding: 0 0 3px;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  background: none;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.wl-tab:hover:not(:disabled),
+.wl-sort:hover:not(:disabled) {
+  border-color: transparent;
+  color: var(--heading);
+}
+
+.wl-tab--on,
+.wl-sort--on {
+  border-bottom-color: var(--heading);
+  color: var(--heading);
+}
+
+.wl-tab-count {
+  margin-left: 6px;
+  color: var(--border-strong);
+}
+
+.wl-tab--on .wl-tab-count {
+  color: var(--muted);
+}
+
+.wl-sorts-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--border-strong);
+}
+
+/* the aggregate-visibility summary that stands in for the status tabs */
+.wl-aggregate {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ---- wish grid --------------------------------------------------------- */
+
+.wl-grid {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 26px 22px;
+  margin: 0;
+  padding: 24px var(--pad) 56px;
+}
+
+.wl-card {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.wl-card-media {
+  position: relative;
+  flex: none;
+  aspect-ratio: 1 / 1.05;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--surface-sunken);
+}
+
+.wl-card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.wl-card-blank {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  color: var(--border-strong);
+}
+
+.wl-card-blank svg {
+  width: 26px;
+  height: 26px;
+}
+
+.wl-chip {
+  position: absolute;
+  top: 9px;
+  left: 9px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--label);
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.wl-chip--reserved {
+  background: var(--accent);
+  color: #fff;
+}
+
+.wl-chip--bought {
+  background: var(--navy);
+  color: #fff;
+}
+
+/* the product link tucked into the corner of the picture */
+.wl-card-open {
+  position: absolute;
+  right: 9px;
+  bottom: 9px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--navy);
+  text-decoration: none;
+}
+
+.wl-card-open:hover {
+  background: #fff;
+  color: var(--accent);
+}
+
+.wl-card-open svg {
+  width: 12px;
+  height: 12px;
+}
+
+.wl-card-title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 11px;
+}
+
+.wl-card-name {
+  min-width: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--heading);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wl-card-price {
+  margin-left: auto;
+  flex: none;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--heading);
+}
+
+.wl-card-note {
+  margin: 6px 0 0;
+  font-size: 0.6875rem;
+  line-height: 1.45;
+  color: var(--muted);
+  /* two lines at most, so a long note cannot stretch the whole row */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.wl-card-actions {
+  display: flex;
+  gap: 6px;
+  /* pinned to the bottom so the buttons align across a row whether or not a
+     card has a note */
+  margin-top: auto;
+  padding-top: 9px;
+}
+
+.wl-card-actions button {
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.wl-empty {
+  grid-column: 1 / -1;
+  padding: 40px;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.wl-error {
+  margin: 16px var(--pad) 0;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 0.875rem;
+}
+
+/* ---- wish detail modal ------------------------------------------------- */
+
+.wish-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.wish-detail-image {
+  width: 100%;
+  max-height: 240px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}
+
+.wish-detail-facts {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.wish-detail-price {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.wish-detail-tag {
+  padding: 4px 9px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  font-size: 0.6875rem;
+  color: var(--label);
+}
+
+.wish-detail-link {
+  margin-left: auto;
+  font-size: 0.75rem;
+}
+
+.wish-detail-notes {
+  margin: 0;
+  padding: 11px 13px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--label);
+}
+
+.wish-detail-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.wish-detail-status .wl-chip {
+  position: static;
+  display: inline-block;
+  background: var(--surface-sunken);
+}
+
+.wish-detail-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.wish-detail-buttons button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.wish-detail-pledges {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wish-detail-contribs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: var(--label);
+}
+
+.wish-detail-pledge-form {
+  display: flex;
+  gap: 7px;
+}
+
+.wish-detail-pledge-form input {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+}
+
+/* ---- manage people modal ----------------------------------------------- */
+
+.people-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.people-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+}
+
+.people-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.people-role {
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.people-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.people-actions button {
+  padding: 5px 9px;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.people-empty {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+/* ---- responsive -------------------------------------------------------- */
+
+@media (max-width: 1240px) {
+  .wl {
+    --pad: 28px;
+  }
+
+  .wl-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1000px) {
+  .wl {
+    --pad: 20px;
+  }
+
+  .wl-head {
+    flex-wrap: wrap;
+  }
+
+  .wl-cover {
+    width: 100%;
+  }
+
+  .wl-headfoot {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .wl-headactions {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .wl-bar {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .wl-sorts {
+    margin-left: 0;
+  }
+
+  .wl-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .wl-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

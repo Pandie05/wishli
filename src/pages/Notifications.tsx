@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useShell } from '../components/AppShell'
 import '../css/notifications-temp.css'
 
 type Notification = {
@@ -13,6 +14,9 @@ type Notification = {
 
 export default function Notifications() {
   const navigate = useNavigate()
+  // the rail's unread badge outlives a navigation now, so it has to be told
+  // when this page reads or dismisses something
+  const shell = useShell()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -20,8 +24,8 @@ export default function Notifications() {
     let cancelled = false
 
     async function load() {
-      const { data } = await supabase.auth.getUser()
-      const user = data.user
+      const { data } = await supabase.auth.getSession()
+      const user = data.session?.user
 
       if (!user) {
         if (!cancelled) navigate('/login', { replace: true })
@@ -54,6 +58,7 @@ export default function Notifications() {
       setNotifications((prev) =>
         prev.map((x) => (x.notification_id === n.notification_id ? { ...x, is_read: true } : x)),
       )
+      shell.refresh()
     }
     if (n.wishlist_id) navigate(`/wishlist/${n.wishlist_id}`)
   }
@@ -61,13 +66,11 @@ export default function Notifications() {
   async function remove(id: string) {
     await supabase.from('notifications').delete().eq('notification_id', id)
     setNotifications((prev) => prev.filter((n) => n.notification_id !== id))
+    shell.refresh()
   }
-
-  if (loading) return <p>Loading...</p>
 
   return (
     <div className="notif">
-      <Link to="/dashboard">back to dashboard</Link>
       <h1>Notifications</h1>
 
       <ul className="notif-list">
@@ -84,7 +87,9 @@ export default function Notifications() {
             </button>
           </li>
         ))}
-        {notifications.length === 0 && <li className="notif-empty">no notifications yet</li>}
+        {!loading && notifications.length === 0 && (
+          <li className="notif-empty">no notifications yet</li>
+        )}
       </ul>
     </div>
   )

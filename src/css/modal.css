@@ -1,0 +1,597 @@
+/* Modal chrome, plus the field vocabulary the two big forms are built from:
+   tiny uppercase labels, hairline-bordered inputs, an upload drop zone and a
+   pair of segmented pickers. Same editorial language as the dashboard. */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: rgba(16, 26, 51, 0.28);
+  backdrop-filter: blur(3px);
+  /* the backdrop carries the fade for the whole dialog. the panel deliberately
+     does not animate its own opacity: it is a child of this element, so the
+     two would multiply and it would vanish twice as fast as the dim behind it */
+  will-change: opacity;
+  animation: modal-in var(--modal-motion) ease-out;
+}
+
+.modal-panel {
+  width: 100%;
+  max-width: 560px;
+  /* auto margins centre it while it fits and let the backdrop scroll it
+     once it does not -- a fixed max-height would force an inner scrollbar */
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  border-radius: 10px;
+  background: var(--surface-raised);
+  color: var(--heading);
+  box-shadow: 0 24px 64px -16px rgba(16, 26, 51, 0.35), 0 2px 8px rgba(16, 26, 51, 0.08);
+  will-change: transform;
+  animation: panel-in var(--modal-motion) cubic-bezier(0.22, 0.7, 0.25, 1);
+}
+
+/* Closing.
+ *
+ * These are separate keyframes rather than the opening ones replayed with
+ * `animation-direction: reverse`. Reusing the name is what makes that trick
+ * fail: when only the direction changes the browser updates the *existing*
+ * animation instead of starting a new one, and that animation's elapsed time
+ * is already long past its duration -- so it snaps straight to the reversed
+ * end state instead of playing back. A different animation-name guarantees a
+ * fresh run from zero.
+ *
+ * The curve is the mirror of the opening one -- cubic-bezier(x1,y1,x2,y2)
+ * reversed is (1-x2, 1-y2, 1-x1, 1-y1) -- so it leaves exactly as it arrived.
+ * Both halves share --modal-motion so the panel can never still be moving
+ * after the backdrop has faded out from under it. */
+.modal-backdrop[data-closing] {
+  animation: modal-out var(--modal-motion) ease-in forwards;
+  /* nothing in a dismissing modal should still be clickable */
+  pointer-events: none;
+}
+
+.modal-panel[data-closing] {
+  animation: panel-out var(--modal-motion) cubic-bezier(0.75, 0, 0.78, 0.3) forwards;
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes modal-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes panel-in {
+  from {
+    transform: translateY(12px) scale(0.985);
+  }
+}
+
+@keyframes panel-out {
+  to {
+    transform: translateY(12px) scale(0.985);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-backdrop,
+  .modal-panel,
+  .modal-backdrop[data-closing],
+  .modal-panel[data-closing] {
+    animation: none;
+  }
+}
+
+/* ---- head -------------------------------------------------------------- */
+
+.modal-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex-shrink: 0;
+  padding: 22px 26px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-eyebrow {
+  margin: 0 0 6px;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.modal-head h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--heading);
+}
+
+.modal-close {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  margin-left: auto;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: none;
+  font-size: 0.9rem;
+  line-height: 1;
+  color: var(--muted);
+}
+
+.modal-close:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  color: var(--heading);
+}
+
+.modal-body {
+  padding: 22px 26px;
+}
+
+/* ---- foot -------------------------------------------------------------- */
+
+.modal-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  padding: 16px 26px 20px;
+}
+
+.modal-hint {
+  font-size: 0.625rem;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.modal-actions button {
+  padding: 9px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.modal-actions button[type='submit'],
+.modal-actions .modal-primary {
+  border-color: transparent;
+  background: var(--accent);
+  color: #fff;
+}
+
+.modal-actions button[type='submit']:hover:not(:disabled),
+.modal-actions .modal-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: transparent;
+}
+
+/* ---- fields ------------------------------------------------------------ */
+
+.field-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+.field-label {
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.field input[type='text'],
+.field input[type='url'],
+.field input[type='number'],
+.field input[type='date'],
+.field select,
+.field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--heading);
+  font: inherit;
+  font-size: 0.8125rem;
+}
+
+.field textarea {
+  min-height: 74px;
+  resize: vertical;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.field-note {
+  margin: 0;
+  font-size: 0.625rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+/* the paste-a-link field reads as a distinct affordance in the design: filled
+   rather than outlined, so it does not look like just another text box */
+.field input.field-paste {
+  border-color: transparent;
+  background: var(--surface-sunken);
+}
+
+.field input.field-paste:focus {
+  border-color: var(--accent);
+  background: var(--surface);
+}
+
+/* "or enter manually" -- a caption sitting on a rule that runs either side */
+.field-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--border-strong);
+}
+
+.field-divider::before,
+.field-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ---- upload drop zone -------------------------------------------------- */
+
+.drop {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 14px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.drop:hover:not(:disabled),
+.drop[data-over='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.drop-thumb {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 52px;
+  height: 46px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--border-strong);
+}
+
+.drop-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.drop-thumb svg {
+  width: 20px;
+  height: 20px;
+}
+
+.drop-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.drop-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--heading);
+}
+
+.drop-sub {
+  overflow-wrap: anywhere;
+  font-size: 0.625rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.drop-clear {
+  margin-left: auto;
+  flex: none;
+  padding: 5px 9px;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+/* ---- segmented / rating pickers ---------------------------------------- */
+
+.segments {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 7px;
+}
+
+.segment {
+  padding: 9px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--label);
+}
+
+.segment[aria-pressed='true'] {
+  border-color: transparent;
+  background: var(--accent);
+  color: #fff;
+}
+
+.segment:disabled {
+  opacity: 1;
+  color: var(--placeholder);
+  cursor: not-allowed;
+}
+
+.segment[aria-pressed='true']:disabled {
+  color: #fff;
+}
+
+.rating {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.rating-step {
+  width: 34px;
+  padding: 8px 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--label);
+}
+
+.rating-step[aria-pressed='true'] {
+  border-color: transparent;
+  background: var(--accent);
+  color: #fff;
+}
+
+.rating-caption {
+  margin-left: 4px;
+  font-size: 0.6875rem;
+  color: var(--muted);
+}
+
+/* ---- invite friends ---------------------------------------------------- */
+
+.invite {
+  position: relative;
+}
+
+.invite-results {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 5;
+  max-height: 168px;
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-pop);
+}
+
+.invite-result {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  font-size: 0.8125rem;
+  text-align: left;
+  color: var(--label);
+}
+
+.invite-result:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--surface-sunken);
+}
+
+.invite-avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.5rem;
+  font-weight: 700;
+}
+
+.invite-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.invite-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  font-size: 0.6875rem;
+  color: var(--label);
+}
+
+.invite-chip button {
+  padding: 0 3px;
+  border: 0;
+  background: none;
+  font-size: 0.75rem;
+  line-height: 1;
+  color: var(--muted);
+}
+
+.invite-chip button:hover:not(:disabled) {
+  border-color: transparent;
+  color: var(--danger);
+}
+
+/* destructive confirm: the danger colour goes on the action that destroys
+   something, while Cancel keeps the ordinary treatment, so the safe choice is
+   the unremarkable-looking one */
+.modal-actions .modal-danger {
+  border-color: transparent;
+  background: var(--danger);
+  color: #fff;
+}
+
+.modal-actions .modal-danger:hover:not(:disabled) {
+  border-color: transparent;
+  filter: brightness(0.93);
+}
+
+/* shown in place of the whole form when there is no wishlist to save into */
+.modal-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 6px 0 10px;
+}
+
+.modal-empty-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  margin-bottom: 2px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  color: var(--muted);
+}
+
+.modal-empty-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.modal-empty-icon--danger {
+  border-style: solid;
+  border-color: var(--danger-soft);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.modal-empty-lead {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--heading);
+}
+
+.modal-empty-note {
+  margin: 0;
+  max-width: 42ch;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.modal-error {
+  margin: 0 0 14px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 0.8125rem;
+}
+
+@media (max-width: 560px) {
+  .field-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

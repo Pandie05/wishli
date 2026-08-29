@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import '../css/friends-temp.css'
 
@@ -52,8 +52,8 @@ export default function Friends() {
     let cancelled = false
 
     async function load() {
-      const { data } = await supabase.auth.getUser()
-      const user = data.user
+      const { data } = await supabase.auth.getSession()
+      const user = data.session?.user
 
       if (!user) {
         if (!cancelled) navigate('/login', { replace: true })
@@ -127,11 +127,8 @@ export default function Friends() {
     await loadRequests(userId)
   }
 
-  if (loading) return <p>Loading...</p>
-
   return (
     <div className="fr">
-      <Link to="/dashboard">back to dashboard</Link>
       <h1>Friends</h1>
 
       <form className="fr-form" onSubmit={handleSend}>
@@ -161,7 +158,9 @@ export default function Friends() {
             </button>
           </li>
         ))}
-        {incoming.length === 0 && <li className="fr-empty">no incoming requests</li>}
+        {!loading && incoming.length === 0 && (
+          <li className="fr-empty">no incoming requests</li>
+        )}
       </ul>
 
       <h2>Outgoing requests</h2>
@@ -174,7 +173,9 @@ export default function Friends() {
             </button>
           </li>
         ))}
-        {outgoing.length === 0 && <li className="fr-empty">no outgoing requests</li>}
+        {!loading && outgoing.length === 0 && (
+          <li className="fr-empty">no outgoing requests</li>
+        )}
       </ul>
 
       <h2>Friends</h2>
@@ -184,7 +185,7 @@ export default function Friends() {
             <span>{r.otherUsername}</span>
           </li>
         ))}
-        {friends.length === 0 && <li className="fr-empty">no friends yet</li>}
+        {!loading && friends.length === 0 && <li className="fr-empty">no friends yet</li>}
       </ul>
     </div>
   )

@@ -1,0 +1,77 @@
+/* Inline loading ring. Sized from font-size and coloured from currentColor so
+   the same element works inside a button, a field or a line of body text. */
+
+.spinner-wrap {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+}
+
+.spinner {
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentColor;
+  /* one transparent quarter is what makes the rotation readable */
+  border-right-color: transparent;
+  border-radius: 50%;
+  opacity: 0.7;
+  animation: spinner-turn 640ms linear infinite;
+}
+
+/* the ring is the only signal that something is happening, so it is slowed
+   rather than stopped -- removing it would leave no feedback at all */
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 1.6s;
+  }
+}
+
+@keyframes spinner-turn {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+.spinner-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* a field with a spinner tucked into its trailing edge */
+.field-affix {
+  position: relative;
+  display: block;
+}
+
+.field-affix .spinner-wrap {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  font-size: 0.875rem;
+  pointer-events: none;
+}
+
+/* only reserve the room while the ring is actually there */
+.field-affix[data-busy] input {
+  padding-right: 34px;
+}
+
+/* spinner sitting before a button's label */
+.spinner-wrap + span,
+.spinner-btn {
+  margin-left: 7px;
+}
+
+.spinner-btn {
+  display: inline-flex;
+  align-items: center;
+}

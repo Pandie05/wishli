@@ -1,0 +1,716 @@
+/* Dashboard — editorial layout: hairline rules instead of cards, tiny
+   letterspaced uppercase labels with ordinal prefixes, and one oversized
+   heading carrying the page.
+ *
+ * Two rules govern the whole file:
+ *
+ * 1. Every rule is full bleed. No horizontal padding lives on the bands
+ *    themselves — the head, the stat strip and the two body columns all run
+ *    edge to edge, and --pad is applied inside their children instead. That
+ *    is what makes the horizontal rules touch the sidebar on the left and the
+ *    window on the right, and the vertical stat dividers touch the rules
+ *    above and below them.
+ *
+ * 2. The vertical rule down the right side is not a border on one element:
+ *    the stat strip and the body below it are separate grids that share the
+ *    same track sizes (…1fr and --rail-w), so the border-left on the last
+ *    stat cell and the border-left on the rail land on exactly the same x.
+ *    .shell-main is a flex column and .dash-cols flexes into it, so that
+ *    border runs to the bottom of the window rather than stopping under the
+ *    last card. */
+
+.dash {
+  --rail-w: 290px;
+  --pad: 44px;
+  --gutter: 20px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- header ------------------------------------------------------------ */
+
+.dash-head {
+  display: flex;
+  align-items: flex-end;
+  gap: 24px;
+  padding: 30px var(--pad) 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.dash-eyebrow {
+  margin: 0 0 8px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.dash-title {
+  margin: 0;
+  font-size: clamp(2.6rem, 4.6vw, 3.75rem);
+  font-weight: 700;
+  letter-spacing: -0.038em;
+  line-height: 0.95;
+  color: var(--heading);
+}
+
+.dash-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  padding-bottom: 9px;
+}
+
+.dash-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 262px;
+  padding: 0 13px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  transition: box-shadow 0.15s ease;
+}
+
+.dash-search:focus-within {
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.dash-search svg {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  color: var(--muted);
+}
+
+/* overrides the global input chrome — inside the field it is just text */
+.dash-search input[type='text'] {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 0;
+  border: 0;
+  background: none;
+  font-size: 0.8125rem;
+}
+
+.dash-search input[type='text']:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.dash-add {
+  flex: none;
+  padding: 11px 28px;
+  border-color: transparent;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.dash-add:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: transparent;
+}
+
+/* ---- stat strip -------------------------------------------------------- */
+
+.dash-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) var(--rail-w);
+  border-bottom: 1px solid var(--border);
+}
+
+/* padding sits on the cells, not the strip, so each divider spans the full
+   height of the band and meets the rule above and below it */
+.dash-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px 0 28px;
+}
+
+.dash-stat + .dash-stat {
+  padding-left: var(--gutter);
+  border-left: 1px solid var(--border);
+}
+
+.dash-stat:first-child {
+  padding-left: var(--pad);
+}
+
+.dash-stat:last-child {
+  padding-right: var(--pad);
+}
+
+.dash-stat-label {
+  display: flex;
+  gap: 7px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.dash-stat-label b {
+  font-weight: 600;
+  color: var(--border-strong);
+}
+
+.dash-stat-value {
+  font-size: 2.25rem;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  color: var(--heading);
+}
+
+.dash-stat-value small {
+  font-size: 1.125rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--muted);
+}
+
+/* ---- two-column body --------------------------------------------------- */
+
+.dash-cols {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--rail-w);
+}
+
+.dash-lists {
+  min-width: 0;
+  padding: 26px 24px 48px var(--pad);
+}
+
+.dash-lists-head {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.dash-lists-head h2 {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--label);
+}
+
+.dash-filters {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-left: auto;
+}
+
+.dash-filters-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--border-strong);
+}
+
+.dash-filter {
+  padding: 0 0 2px;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  background: none;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.dash-filter:hover:not(:disabled) {
+  border-color: transparent;
+  color: var(--heading);
+}
+
+.dash-filter--on {
+  border-bottom-color: var(--heading);
+  color: var(--heading);
+}
+
+/* ---- wishlist cards ---------------------------------------------------- */
+
+.dash-grid {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px 24px;
+  margin: 0;
+  padding: 0;
+}
+
+.dash-card {
+  position: relative;
+  min-width: 0;
+}
+
+/* the whole card opens the wishlist, not just its name. the title's link
+   stretches an invisible layer over the card rather than wrapping everything
+   in an <a>, which would nest the ⋯ button inside a link. that button and
+   its menu sit above the layer so they still take their own clicks. */
+.dash-card-title a::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: 6px;
+}
+
+.dash-card-media,
+.dash-card-title a {
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.dash-card:hover .dash-card-media {
+  opacity: 0.92;
+}
+
+.dash-card:hover .dash-card-title a {
+  color: var(--accent);
+}
+
+.dash-card-media {
+  position: relative;
+  aspect-ratio: 3 / 2;
+  border-radius: 6px;
+  overflow: hidden;
+  /* the fallback when a list has no cover image and no item images yet --
+     --cover-a/--cover-b are set per card from a hash of its id */
+  background: linear-gradient(150deg, var(--cover-a, #2b3f6b), var(--cover-b, #7ea0d8));
+}
+
+.dash-card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.dash-card-num {
+  position: absolute;
+  top: 11px;
+  left: 13px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+}
+
+.dash-card-menu {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--navy);
+  font-size: 0.875rem;
+  line-height: 1;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.dash-card:hover .dash-card-menu,
+.dash-card-menu:focus-visible,
+.dash-card-menu[aria-expanded='true'] {
+  opacity: 1;
+}
+
+.dash-card-menu:hover:not(:disabled) {
+  border-color: transparent;
+  background: #fff;
+}
+
+.dash-card-pop {
+  position: absolute;
+  top: 38px;
+  right: 8px;
+  z-index: 3;
+  width: 130px;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-pop);
+}
+
+.dash-card-pop button {
+  display: block;
+  width: 100%;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  font-size: 0.8125rem;
+  text-align: left;
+  color: var(--label);
+}
+
+.dash-card-pop button:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--surface-sunken);
+}
+
+.dash-card-pop button:last-child:hover:not(:disabled) {
+  color: var(--danger);
+}
+
+.dash-card-title {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-top: 13px;
+}
+
+.dash-card-title a {
+  min-width: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--heading);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash-card-title a:hover {
+  color: var(--accent);
+}
+
+.dash-card-price {
+  margin-left: auto;
+  flex: none;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--heading);
+}
+
+.dash-card-price small {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.dash-card-price--over {
+  color: var(--danger);
+}
+
+.dash-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 0.6875rem;
+  color: var(--muted);
+}
+
+.dash-card-meta-right {
+  margin-left: auto;
+}
+
+.dash-faces {
+  display: flex;
+}
+
+.dash-face {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 1.5px solid var(--page-bg);
+  background: var(--accent);
+}
+
+.dash-face + .dash-face {
+  margin-left: -5px;
+}
+
+.dash-face--n2 {
+  background: #7d93cf;
+}
+
+.dash-face--n3 {
+  background: #a9bade;
+}
+
+.dash-empty {
+  grid-column: 1 / -1;
+  padding: 34px;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+/* ---- right rail -------------------------------------------------------- */
+
+.dash-rail {
+  padding: 26px var(--pad) 48px var(--gutter);
+  border-left: 1px solid var(--border);
+}
+
+.dash-rail-title {
+  margin: 0 0 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.dash-rail-section + .dash-rail-section {
+  margin-top: 24px;
+}
+
+.dash-activity {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+
+.dash-activity-row {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+}
+
+.dash-activity-avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.5rem;
+  font-weight: 700;
+}
+
+.dash-activity-text {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.6875rem;
+  line-height: 1.45;
+  text-align: left;
+  color: var(--label);
+}
+
+.dash-activity-text:hover:not(:disabled) {
+  border-color: transparent;
+  color: var(--heading);
+}
+
+.dash-activity-text.dash-activity-text--unread {
+  font-weight: 600;
+  color: var(--heading);
+}
+
+.dash-activity-entity {
+  color: var(--accent);
+}
+
+.dash-activity-time {
+  margin-left: 5px;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.dash-rail-empty {
+  font-size: 0.6875rem;
+  color: var(--muted);
+}
+
+.dash-quick {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dash-quick-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.dash-quick-input:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.dash-quick-input svg {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  color: var(--muted);
+}
+
+.dash-quick-input input[type='url'] {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 0;
+  border: 0;
+  background: none;
+  font-size: 0.6875rem;
+}
+
+.dash-quick-input input[type='url']:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.dash-quick-row {
+  display: flex;
+  gap: 7px;
+}
+
+.dash-quick-row button {
+  flex: 1;
+  padding: 8px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.dash-quick-save {
+  border-color: transparent;
+  background: var(--navy);
+  color: #fff;
+}
+
+.dash-quick-save:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--navy-hover);
+}
+
+.dash-quick-note {
+  margin: 0;
+  font-size: 0.625rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.dash-quick-note--error {
+  color: var(--danger);
+}
+
+.dash-stat-idle {
+  color: var(--border-strong);
+  font-style: normal;
+}
+
+/* ---- responsive -------------------------------------------------------- */
+
+@media (max-width: 1240px) {
+  .dash {
+    --rail-w: 250px;
+    --pad: 28px;
+  }
+}
+
+@media (max-width: 1000px) {
+  .dash {
+    --pad: 20px;
+  }
+
+  .dash-head {
+    flex-wrap: wrap;
+  }
+
+  .dash-head-actions {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .dash-search {
+    flex: 1;
+    width: auto;
+  }
+
+  .dash-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dash-stat:nth-child(odd) {
+    padding-left: var(--pad);
+    border-left: 0;
+  }
+
+  .dash-stat:nth-child(2) {
+    padding-right: var(--pad);
+  }
+
+  .dash-stat:nth-child(3),
+  .dash-stat:nth-child(4) {
+    border-top: 1px solid var(--border);
+  }
+
+  .dash-cols {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dash-lists {
+    padding-right: var(--pad);
+  }
+
+  .dash-rail {
+    padding: 22px var(--pad) 40px;
+    border-left: 0;
+    border-top: 1px solid var(--border);
+  }
+}
+
+@media (max-width: 620px) {
+  .dash-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.dash-error {
+  margin: 16px var(--pad) 0;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 0.875rem;
+}
