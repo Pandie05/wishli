@@ -58,6 +58,10 @@ export default function AddWishModal({
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [fetching, setFetching] = useState(false)
+  // the link read fine but Amazon does not give these up -- ask for them
+  // rather than leaving empty fields that look like a failure
+  const [askForPrice, setAskForPrice] = useState(false)
+  const [askForImage, setAskForImage] = useState(false)
   // the last url actually looked up, so tabbing through the field does not
   // fire the same request again
   const fetchedRef = useRef('')
@@ -72,6 +76,8 @@ export default function AddWishModal({
     setPriority(item?.priority ?? null)
     setNotes(item?.notes ?? '')
     setError(null)
+    setAskForPrice(false)
+    setAskForImage(false)
 
     // a link handed over from the quick-add box starts reading immediately,
     // the same as pasting one in here would
@@ -118,6 +124,8 @@ export default function AddWishModal({
     if (data?.title && !name.trim()) setName(data.title)
     if (data?.price != null && !price) setPrice(String(data.price))
     if (data?.image && !imageUrl) setImageUrl(data.image)
+    setAskForPrice(!!data?.priceUnavailable && !price)
+    setAskForImage(!!data?.imageUnavailable && !imageUrl)
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -249,7 +257,18 @@ export default function AddWishModal({
 
         <div className="field">
           <span className="field-label">Product image</span>
-          <ImageDrop value={imageUrl} onChange={setImageUrl} userId={userId} onError={setError} />
+          <ImageDrop
+            value={imageUrl}
+            onChange={(next) => {
+              setImageUrl(next)
+              if (next) setAskForImage(false)
+            }}
+            userId={userId}
+            onError={setError}
+          />
+          {askForImage && !imageUrl && (
+            <p className="field-note">We could not find a picture for this one — add your own.</p>
+          )}
         </div>
 
         <label className="field">
@@ -265,7 +284,17 @@ export default function AddWishModal({
         <div className="field-row">
           <label className="field">
             <span className="field-label">Wish price</span>
-            <MoneyInput placeholder="$0.00" value={price} onChange={setPrice} />
+            <MoneyInput
+              placeholder="$0.00"
+              value={price}
+              onChange={(next) => {
+                setPrice(next)
+                if (next) setAskForPrice(false)
+              }}
+            />
+            {askForPrice && !price && (
+              <p className="field-note">No price on the listing — add one here.</p>
+            )}
           </label>
 
           <label className="field">
