@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { daysUntil, formatTargetDate } from '../lib/dates'
 import { describeError } from '../lib/errors'
 import { supabase } from '../lib/supabase'
 import { WISH_COLUMNS } from '../lib/types'
@@ -78,6 +79,8 @@ export default function WishlistDetail() {
   const [deleting, setDeleting] = useState(false)
   const [editingList, setEditingList] = useState(false)
   const [showPeople, setShowPeople] = useState(false)
+  const [sharing, setSharing] = useState(false)
+  const [shareCopied, setShareCopied] = useState(false)
 
   const load = useCallback(async () => {
     const { data: auth } = await supabase.auth.getSession()
@@ -100,7 +103,7 @@ export default function WishlistDetail() {
       supabase
         .from('wishlists')
         .select(
-          'wishlist_id, id, name, budget, created_at, purchase_visibility, item_img, description, occasion, target_date',
+          'wishlist_id, id, name, budget, created_at, purchase_visibility, item_img, description, occasion, target_date, share_token',
         )
         .eq('wishlist_id', wishlistId)
         .single(),
@@ -222,6 +225,38 @@ export default function WishlistDetail() {
     [contributions],
   )
 
+  /**
+   * First click with no token yet generates one; once it exists, every click
+   * just copies the link again. A token is never cleared here -- turning
+   * sharing back off would need its own explicit control, this button only
+   * ever turns it on or re-shares the same link.
+   */
+  async function handleShare() {
+    if (sharing || !wishlist) return
+
+    let token = wishlist.share_token
+    if (!token) {
+      setSharing(true)
+      token = crypto.randomUUID()
+      const { error: failure } = await supabase
+        .from('wishlists')
+        .update({ share_token: token })
+        .eq('wishlist_id', wishlist.wishlist_id)
+      setSharing(false)
+
+      if (failure) {
+        setError(failure.message)
+        return
+      }
+
+      setWishlist((prev) => (prev ? { ...prev, share_token: token } : prev))
+    }
+
+    await navigator.clipboard.writeText(`${window.location.origin}/share/${token}`)
+    setShareCopied(true)
+    setTimeout(() => setShareCopied(false), 2000)
+  }
+
   async function deleteWish() {
     if (!deletingWish || deleting) return
     setDeleting(true)
@@ -255,6 +290,22 @@ export default function WishlistDetail() {
             <Link to="/dashboard">Wishlists</Link> / {wishlist?.name ?? '...'}
           </p>
           <h1 className="wl-title">{wishlist?.name ?? ' '}</h1>
+
+          {(wishlist?.occasion || wishlist?.target_date) && (
+            <p
+              className={
+                wishlist?.target_date && daysUntil(wishlist.target_date) <= 3 && daysUntil(wishlist.target_date) >= 0
+                  ? 'wl-occasion wl-occasion--soon'
+                  : 'wl-occasion'
+              }
+            >
+              {wishlist.occasion}
+              {wishlist.occasion && wishlist.target_date && ' · '}
+              {wishlist.target_date &&
+                (wishlist.occasion ? formatTargetDate(wishlist.target_date) : `Due ${formatTargetDate(wishlist.target_date)}`)}
+            </p>
+          )}
+
           {wishlist?.description && <p className="wl-desc">{wishlist.description}</p>}
 
           <div className="wl-headfoot">
@@ -288,16 +339,16 @@ export default function WishlistDetail() {
             </div>
 
             <div className="wl-headactions">
-              {/* visual only for now -- public share links would need a share
-                  token and a read policy that does not require a session. use
-                  Manage people to let someone in. */}
-              <button
-                type="button"
-                disabled
-                title="Public share links are not available yet — invite people from Manage people instead."
-              >
-                Share link
-              </button>
+              {isOwner && (
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  disabled={sharing}
+                  title="Anyone with the link can view this wishlist, read-only — they still need to sign in to reserve anything."
+                >
+                  {sharing ? 'Creating link...' : shareCopied ? 'Copied!' : 'Share link'}
+                </button>
+              )}
 
               {isOwner && (
                 <button type="button" onClick={() => setEditingList(true)}>

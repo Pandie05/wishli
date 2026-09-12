@@ -1,0 +1,62 @@
+/* The read-only page a share link opens to. No shell, no nav -- just enough
+   chrome to say what this is and offer a way in, reusing the wishlist page's
+   own card/grid styling (wishlist-detail.css) so the two look like the same
+   product. Light-only, same as the rest of the app. */
+
+.shared-page {
+  min-height: 100vh;
+  background: var(--page-bg);
+}
+
+.shared-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 44px;
+  border-bottom: 1px solid var(--border);
+}
+
+.shared-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--heading);
+}
+
+.shared-brand-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.shared-cta {
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.shared-cta:hover {
+  background: var(--accent-hover);
+}
+
+.shared-headline {
+  padding: 30px 44px 0;
+}
+
+/* .wl-grid (wishlist-detail.css) already carries the matching padding via
+   --pad, defined on the .wl wrapper -- nothing to add here */
+
+.shared-status {
+  padding: 80px 44px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.9rem;
+}

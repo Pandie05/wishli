@@ -344,14 +344,16 @@ Deno.serve(async (req) => {
           if (await imageExists(candidate)) preview.image = candidate
         }
       }
-
-      // whatever is still blank is not coming -- either the page had none to
-      // give (an unavailable listing shows no price at all) or we never got
-      // the page. say so, rather than leave the caller staring at an empty
-      // field wondering if we had simply not finished loading.
-      preview.priceUnavailable = preview.price == null
-      preview.imageUnavailable = preview.image == null
     }
+
+    // whatever is still blank is not coming -- either the page had none to
+    // give (an unavailable listing shows no price at all, Amazon or not) or
+    // we never got the page. say so, rather than leave the caller staring at
+    // an empty field wondering if we had simply not finished loading. this
+    // used to be Amazon-only, which meant a non-Amazon site that also came up
+    // empty just left the field blank with no explanation.
+    preview.priceUnavailable = preview.price == null
+    preview.imageUnavailable = preview.image == null
 
     // only a total blank is worth reporting as a failure -- a partial fill is
     // still better than making someone type everything

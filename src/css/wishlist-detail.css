@@ -74,6 +74,17 @@
   color: var(--muted);
 }
 
+.wl-occasion {
+  margin: 8px 0 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.wl-occasion--soon {
+  color: var(--danger);
+}
+
 /* matches the modals' close control, sitting in the top corner of the page */
 .wl-close {
   flex: none;

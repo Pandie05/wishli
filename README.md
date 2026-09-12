@@ -66,34 +66,39 @@ sql-queries/
   008_item_priority_rename.sql
   009_claims_editors_contributions.sql
   010_fix_contribution_and_item_gaps.sql
+  011_wishlist_details_and_uploads.sql
+  012_wishlist_description.sql
+  013_avatars_sharing_and_reminders.sql
 ```
 
 Each file is safe to re-run (everything is `if not exists` / `or replace`), so if you're not sure what's already applied, running the whole sequence again won't break anything.
 
-### Edge function (link auto-fill)
+### Edge functions
 
-Adding an item can auto-fill its name/price/image from a pasted product URL, via a Supabase edge function in `supabase/functions/fetch-link-preview`. It needs to be deployed separately from the rest of the app:
+Two Deno functions in `supabase/functions/`, deployed separately from the rest of the app:
 
 ```
 npx supabase login
 npx supabase link --project-ref YOUR_PROJECT_REF
 npx supabase functions deploy fetch-link-preview
+npx supabase functions deploy send-date-reminders
 ```
 
-The app works without this — the "Fetch details" button just won't return anything until the function is deployed.
+- **`fetch-link-preview`** — auto-fills an item's name/price/image from a pasted product URL. The app works without it, the "Fetch details" button just won't return anything until it's deployed.
+- **`send-date-reminders`** — scans for wishlists whose target date is coming up and notifies the owner. It reads `SUPABASE_SERVICE_ROLE_KEY`, which Supabase auto-injects into every edge function (the `SUPABASE_` prefix is reserved — you can't set it yourself, the dashboard/CLI will reject it) — no extra setup needed for that part. It scans across every account, which is why it needs that elevated key rather than running under any single user's normal access. Triggered daily by `.github/workflows/date-reminders.yml`, which needs the same `SUPABASE_URL`/`SUPABASE_KEY` repo secrets the existing keepalive workflow already uses.
 
 ## What's in the app
 
 - **Auth** — email/password and Google sign-in
-- **Dashboard** — your wishlists and the ones shared with you, with budget-vs-spent tracking
-- **Wishlist detail** — add/edit/delete items, mark purchased, sort by priority/date/price
-- **Friends** — send/accept/decline friend requests
-- **Sharing** — share a wishlist with a friend; they can view and mark items purchased, but can't edit the list. The owner can choose whether they see exactly what's been claimed or just a count, so a shared wishlist can still be a surprise
-- **Notifications** — friend requests, accepted requests, being added to a wishlist, items getting claimed
-- **Settings** — change username, email, or password
+- **Dashboard** — your wishlists and the ones shared with you, with budget-vs-spent tracking, search, and sorting (including by soonest upcoming date)
+- **Wishlist detail** — add/edit/delete items, mark purchased, occasion + target date, a read-only public share link
+- **Friends** — send/accept/decline friend requests, resend after a decline
+- **Sharing** — share a wishlist with a friend; they can view and mark items purchased, but can't edit the list unless made an editor. The owner can choose whether they see exactly what's been claimed or just a count, so a shared wishlist can still be a surprise
+- **Notifications** — friend requests, accepted requests, being added to a wishlist, items getting claimed, and upcoming target dates
+- **Settings** — profile picture, username, email, or password
 
 ## Notes
 
 - Requires Node 20.19+ or 22.12+. It'll run on older Node 20.18 with a warning, but that's unsupported territory.
-- On Windows, `package.json` pins `@rolldown/binding-win32-x64-msvc` as a direct dependency. Without it, `npm install` intermittently fails to pull in the native binary Vite needs (a known npm bug with optional dependencies) and `npm run dev` fails with `'vite' is not recognized`. If that happens, delete `node_modules` and `package-lock.json` and reinstall.
-- Styling in most pages is intentionally throwaway (files named `*-temp.css`, marked for deletion) — the app is functional but not the final design.
+- On Windows, `npm install` can intermittently fail to pull in the native `@rolldown/binding-win32-x64-msvc` binary Vite needs (a known npm bug with optional dependencies), and `npm run dev` then fails with `'vite' is not recognized`. It isn't pinned as a direct dependency — that fixes Windows but breaks `npm install` on Vercel's Linux builds outright (an explicit non-Windows dependency triggers a hard `EBADPLATFORM` error rather than a skip). If you hit this, delete `node_modules` and `package-lock.json` and reinstall, sometimes twice.
+- Friends, Notifications, and Settings are still on early, functional-only styling (`friends-temp.css`, `notifications-temp.css`, `settings-temp.css`) — Dashboard, Wishlist detail, and the shared modals have had a real design pass.

@@ -6,6 +6,7 @@ import WishlistDetail from './pages/WishlistDetail'
 import Friends from './pages/Friends'
 import Notifications from './pages/Notifications'
 import Settings from './pages/Settings'
+import SharedWishlist from './pages/SharedWishlist'
 
 export default function App() {
   return (
@@ -24,6 +25,10 @@ export default function App() {
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
+
+        {/* no session needed, no shell -- a link-sharing recipient may never
+            make an account at all */}
+        <Route path="/share/:token" element={<SharedWishlist />} />
 
         {/* /login and /signup share one route so <Auth> survives the switch
             and can animate between them. Static paths above outrank it. */}

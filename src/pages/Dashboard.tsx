@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { daysUntil, formatTargetDate } from '../lib/dates'
 import { describeError } from '../lib/errors'
 import { supabase } from '../lib/supabase'
 import { initialsFor, useShell } from '../components/AppShell'
@@ -28,7 +29,7 @@ type ActivityRow = {
   created_at: string
 }
 
-type SortMode = 'recent' | 'az' | 'value'
+type SortMode = 'recent' | 'az' | 'value' | 'upcoming'
 
 /** "$1,349" / "$12.50" — whole numbers stay whole, the mockup shows no .00 */
 function money(value: number): string {
@@ -154,7 +155,7 @@ export default function Dashboard() {
         // rls returns lists you own plus lists you have been added to
         supabase
           .from('wishlists')
-          .select('wishlist_id, id, name, budget, created_at, purchase_visibility, item_img, description, occasion, target_date')
+          .select('wishlist_id, id, name, budget, created_at, purchase_visibility, item_img, description, occasion, target_date, share_token')
           .order('created_at', { ascending: false }),
         supabase
           .from('items')
@@ -257,6 +258,8 @@ export default function Dashboard() {
     if (sort === 'az') sorted.sort((a, b) => a.name.localeCompare(b.name))
     else if (sort === 'value')
       sorted.sort((a, b) => (totals[b.wishlist_id] ?? 0) - (totals[a.wishlist_id] ?? 0))
+    else if (sort === 'upcoming')
+      sorted.sort((a, b) => daysUntil(a.target_date) - daysUntil(b.target_date))
     return sorted
   }, [wishlists, owned, includeShared, query, sort, totals])
 
@@ -432,6 +435,14 @@ export default function Dashboard() {
               </button>
               <button
                 type="button"
+                className={sort === 'upcoming' ? 'dash-filter dash-filter--on' : 'dash-filter'}
+                onClick={() => setSort((s) => (s === 'upcoming' ? 'recent' : 'upcoming'))}
+                title="Sort by soonest target date"
+              >
+                Upcoming
+              </button>
+              <button
+                type="button"
                 className={includeShared ? 'dash-filter dash-filter--on' : 'dash-filter'}
                 onClick={() => setIncludeShared((on) => !on)}
                 title="Include wishlists shared with you"
@@ -505,6 +516,20 @@ export default function Dashboard() {
                       {w.budget != null && <small> / {money(w.budget)}</small>}
                     </span>
                   </div>
+
+                  {(w.occasion || w.target_date) && (
+                    <p
+                      className={
+                        w.target_date && daysUntil(w.target_date) <= 3 && daysUntil(w.target_date) >= 0
+                          ? 'dash-card-occasion dash-card-occasion--soon'
+                          : 'dash-card-occasion'
+                      }
+                    >
+                      {w.occasion}
+                      {w.occasion && w.target_date && ' · '}
+                      {w.target_date && (w.occasion ? formatTargetDate(w.target_date) : `Due ${formatTargetDate(w.target_date)}`)}
+                    </p>
+                  )}
 
                   <div className="dash-card-meta">
                     <span className="dash-faces">
