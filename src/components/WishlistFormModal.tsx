@@ -19,10 +19,11 @@ export type WishlistRow = {
   description: string | null
   occasion: string | null
   target_date: string | null
+  share_token: string | null
 }
 
 const COLUMNS =
-  'wishlist_id, id, name, budget, created_at, purchase_visibility, item_img, description, occasion, target_date'
+  'wishlist_id, id, name, budget, created_at, purchase_visibility, item_img, description, occasion, target_date, share_token'
 
 /** Free text in the database, so this list can change without a migration. */
 const OCCASIONS = [

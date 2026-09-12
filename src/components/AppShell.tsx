@@ -81,6 +81,7 @@ export default function AppShell() {
 
   const [userId, setUserId] = useState<string | null>(null)
   const [username, setUsername] = useState('')
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [unread, setUnread] = useState(0)
   const [wishlists, setWishlists] = useState<WishlistRow[]>([])
   const [dataVersion, setDataVersion] = useState(0)
@@ -112,11 +113,11 @@ export default function AppShell() {
       if (!user) return
 
       const [{ data: profile }, { data: rows }, { count }] = await Promise.all([
-        supabase.from('users').select('username').eq('id', user.id).single(),
+        supabase.from('users').select('username, avatar_url').eq('id', user.id).single(),
         // rls already scopes this to lists you own or are a member of
         supabase
           .from('wishlists')
-          .select('wishlist_id, id, name, budget, created_at, purchase_visibility, item_img, description, occasion, target_date')
+          .select('wishlist_id, id, name, budget, created_at, purchase_visibility, item_img, description, occasion, target_date, share_token')
           .order('created_at', { ascending: false }),
         supabase
           .from('notifications')
@@ -127,6 +128,7 @@ export default function AppShell() {
       if (cancelled) return
       setUserId(user.id)
       setUsername(profile?.username ?? '')
+      setAvatarUrl(profile?.avatar_url ?? null)
       setWishlists(rows ?? [])
       setUnread(count ?? 0)
     }
@@ -281,7 +283,9 @@ export default function AppShell() {
               aria-haspopup="menu"
               aria-expanded={menuOpen}
             >
-              <span className="shell-avatar">{initialsFor(username)}</span>
+              <span className="shell-avatar">
+                {avatarUrl ? <img src={avatarUrl} alt="" /> : initialsFor(username)}
+              </span>
               <span className="shell-user-text">
                 <span className="shell-user-name">{username || 'Account'}</span>
                 <span className="shell-user-handle">@{username || '...'}</span>

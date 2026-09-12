@@ -3,12 +3,15 @@ import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { USERNAME_TAKEN, usernameTaken, validateUsername } from '../lib/username'
+import { useShell } from '../components/AppShell'
+import ImageDrop from '../components/ImageDrop'
 import '../css/settings-temp.css'
 
 type Message = { text: string; ok: boolean } | null
 
 export default function Settings() {
     const navigate = useNavigate()
+    const shell = useShell()
     const [loading, setLoading] = useState(true)
     const [userId, setUserId] = useState<string | null>(null)
     // the address on auth.users, which is the one that can log in. the copy in
@@ -17,6 +20,10 @@ export default function Settings() {
     const [currentUsername, setCurrentUsername] = useState('')
     // google accounts have no password to re-enter or replace
     const [hasPassword, setHasPassword] = useState(true)
+
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+    const [avatarError, setAvatarError] = useState<string | null>(null)
+    const [savingAvatar, setSavingAvatar] = useState(false)
 
     const [username, setUsername] = useState('')
     const [usernameMessage, setUsernameMessage] = useState<Message>(null)
@@ -46,7 +53,7 @@ export default function Settings() {
 
             const { data: profile } = await supabase
                 .from('users')
-                .select('username')
+                .select('username, avatar_url')
                 .eq('id', user.id)
                 .single()
 
@@ -57,6 +64,7 @@ export default function Settings() {
             setEmail(user.email ?? '')
             setCurrentUsername(profile?.username ?? '')
             setUsername(profile?.username ?? '')
+            setAvatarUrl(profile?.avatar_url ?? null)
             setHasPassword(user.identities?.some((i) => i.provider === 'email') ?? true)
             setLoading(false)
         }
@@ -66,6 +74,28 @@ export default function Settings() {
             cancelled = true
         }
     }, [navigate])
+
+    // ImageDrop already handles the upload itself and hands back a url (or
+    // null on Remove) -- there is nothing else on this form to batch it with,
+    // so it saves the moment it changes rather than waiting on a submit
+    async function handleAvatarChange(next: string | null) {
+        if (!userId || savingAvatar) return
+
+        setSavingAvatar(true)
+        setAvatarError(null)
+
+        const { error } = await supabase.from('users').update({ avatar_url: next }).eq('id', userId)
+
+        setSavingAvatar(false)
+
+        if (error) {
+            setAvatarError(error.message)
+            return
+        }
+
+        setAvatarUrl(next)
+        shell.refresh()
+    }
 
     async function handleUsername(event: FormEvent<HTMLFormElement>) {
         event.preventDefault()
@@ -203,6 +233,19 @@ export default function Settings() {
     return (
         <div className="set">
             <h1>Settings</h1>
+
+            <section className="set-section">
+                <h2>Profile picture</h2>
+                <ImageDrop
+                    value={avatarUrl}
+                    onChange={handleAvatarChange}
+                    userId={userId}
+                    onError={setAvatarError}
+                    hint="PNG, JPG, WEBP or GIF up to 5 MB"
+                />
+                {savingAvatar && <p className="set-notice">Saving...</p>}
+                {avatarError && <p className="set-error">{avatarError}</p>}
+            </section>
 
             <section className="set-section">
                 <h2>Username</h2>

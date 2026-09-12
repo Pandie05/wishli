@@ -1,0 +1,20 @@
+name: Send Wishlist Date Reminders
+
+on:
+  schedule:
+    # Once a day. The function itself only ever notifies a given wishlist
+    # once (see reminder_sent_at), so running daily just means a list is
+    # never more than a day late getting picked up.
+    - cron: '0 13 * * *'
+  workflow_dispatch: # Allows manual testing
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Invoke send-date-reminders
+        run: |
+          curl -f -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/send-date-reminders" \
+            -H "apikey: ${{ secrets.SUPABASE_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_KEY }}" \
+            -H "Content-Type: application/json"

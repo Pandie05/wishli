@@ -98,6 +98,31 @@ export default function Friends() {
       return
     }
 
+    // a past request in this same direction leaves a row behind regardless of
+    // how it ended, so it has to be dealt with before a fresh one can be sent
+    const { data: existing } = await supabase
+      .from('friend_requests')
+      .select('request_id, status')
+      .eq('sender_id', userId)
+      .eq('receiver_id', targetId)
+      .maybeSingle()
+
+    if (existing?.status === 'pending') {
+      setError('you already sent that person a request')
+      setSubmitting(false)
+      return
+    }
+    if (existing?.status === 'accepted') {
+      setError('you are already friends with that person')
+      setSubmitting(false)
+      return
+    }
+    if (existing?.status === 'declined') {
+      // senders can cancel/clear their own request regardless of its status
+      // (see 004) -- reusing that here rather than leaving the old row behind
+      await supabase.from('friend_requests').delete().eq('request_id', existing.request_id)
+    }
+
     const { error: insertError } = await supabase
       .from('friend_requests')
       .insert({ sender_id: userId, receiver_id: targetId })
