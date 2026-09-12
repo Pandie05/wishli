@@ -69,6 +69,7 @@ sql-queries/
   011_wishlist_details_and_uploads.sql
   012_wishlist_description.sql
   013_avatars_sharing_and_reminders.sql
+  014_drop_unused_verification_codes.sql
 ```
 
 Each file is safe to re-run (everything is `if not exists` / `or replace`), so if you're not sure what's already applied, running the whole sequence again won't break anything.
