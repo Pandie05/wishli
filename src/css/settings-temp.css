@@ -94,3 +94,17 @@
   color: var(--muted);
   font-size: 0.9rem;
 }
+
+.set-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.set-toggle input {
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}

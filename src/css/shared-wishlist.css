@@ -60,3 +60,121 @@
   color: var(--muted);
   font-size: 0.9rem;
 }
+
+/* ---- public profile (/u/<username>) ------------------------------------- */
+
+.profile {
+  padding: 44px;
+}
+
+.profile-id {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 36px;
+  text-align: center;
+}
+
+.profile-avatar {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-name {
+  margin: 0;
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
+  color: var(--heading);
+}
+
+.profile-count {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.profile-grid {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  max-width: 940px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 18px;
+}
+
+.profile-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--surface-raised);
+  text-decoration: none;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 160ms ease, transform 160ms ease;
+}
+
+.profile-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.profile-cover {
+  display: block;
+  height: 118px;
+  background: linear-gradient(135deg, var(--cover-a), var(--cover-b));
+}
+
+.profile-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px 16px;
+}
+
+.profile-card-name {
+  font-size: 0.9375rem;
+  font-weight: 650;
+  color: var(--heading);
+}
+
+.profile-card-when {
+  font-size: 0.75rem;
+  color: var(--accent);
+}
+
+.profile-card-count {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+@media (max-width: 640px) {
+  .shared-head,
+  .profile {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}

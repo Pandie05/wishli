@@ -16,8 +16,14 @@ type ItemRow = {
   wishlist_id: string
   price: number | null
   image_url: string | null
-  claimed_by: string | null
+  quantity: number
   added_at: string
+}
+
+type ClaimRow = {
+  item_id: string
+  user_id: string
+  quantity: number
 }
 
 type ActivityRow = {
@@ -116,6 +122,7 @@ export default function Dashboard() {
   const [wishlists, setWishlists] = useState<WishlistRow[]>([])
   const [items, setItems] = useState<ItemRow[]>([])
   const [memberships, setMemberships] = useState<{ wishlist_id: string; user_id: string }[]>([])
+  const [claims, setClaims] = useState<ClaimRow[]>([])
   const [activity, setActivity] = useState<ActivityRow[]>([])
   const [senderNames, setSenderNames] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
@@ -149,6 +156,7 @@ export default function Dashboard() {
       { data: listRows, error: listError },
       { data: itemRows, error: itemError },
       { data: memberRows },
+      { data: claimRows },
       { data: notifRows },
     ] = await Promise.all([
         supabase.from('users').select('username').eq('id', user.id).single(),
@@ -159,9 +167,10 @@ export default function Dashboard() {
           .order('created_at', { ascending: false }),
         supabase
           .from('items')
-          .select('item_id, wishlist_id, price, image_url, claimed_by, added_at')
+          .select('item_id, wishlist_id, price, image_url, quantity, added_at')
           .order('added_at', { ascending: false }),
         supabase.from('wishlist_members').select('wishlist_id, user_id'),
+        supabase.from('item_claims').select('item_id, user_id, quantity'),
         supabase
           .from('notifications')
           .select('notification_id, sender_id, wishlist_id, message, is_read, created_at')
@@ -177,6 +186,7 @@ export default function Dashboard() {
     setWishlists((listRows ?? []) as WishlistRow[])
     setItems((itemRows ?? []) as ItemRow[])
     setMemberships(memberRows ?? [])
+    setClaims((claimRows ?? []) as ClaimRow[])
     setActivity((notifRows ?? []) as ActivityRow[])
     setLoading(false)
 
@@ -211,6 +221,11 @@ export default function Dashboard() {
     const totals: Record<string, number> = {}
     const covers: Record<string, string> = {}
     const ownedIds = new Set(owned.map((w) => w.wishlist_id))
+    // "someone else has spoken for one of yours" -- your own claims on your
+    // own list do not count as a surprise waiting for you
+    const claimedByOthers = new Set(
+      claims.filter((c) => c.user_id !== userId).map((c) => c.item_id),
+    )
     let reserved = 0
     let ownedItemCount = 0
 
@@ -223,12 +238,12 @@ export default function Dashboard() {
 
       if (ownedIds.has(item.wishlist_id)) {
         ownedItemCount += 1
-        if (item.claimed_by && item.claimed_by !== userId) reserved += 1
+        if (claimedByOthers.has(item.item_id)) reserved += 1
       }
     }
 
     return { counts, totals, covers, reserved, ownedItemCount }
-  }, [items, owned, userId])
+  }, [items, owned, userId, claims])
 
   const memberCounts = useMemo(() => {
     const byList: Record<string, number> = {}

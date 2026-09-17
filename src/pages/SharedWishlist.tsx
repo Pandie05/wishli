@@ -22,6 +22,8 @@ type SharedItem = {
   image_url: string | null
   price: number | null
   notes: string | null
+  quantity: number
+  claimed_quantity: number
   reserved: boolean
 }
 
@@ -125,7 +127,11 @@ export default function SharedWishlist() {
                 )}
 
                 <span className={item.reserved ? 'wl-chip wl-chip--reserved' : 'wl-chip'}>
-                  {item.reserved ? 'Reserved' : 'Available'}
+                  {item.reserved
+                    ? 'Reserved'
+                    : item.quantity > 1
+                      ? `${item.quantity - item.claimed_quantity} of ${item.quantity} left`
+                      : 'Available'}
                 </span>
 
                 {item.product_url && (

@@ -29,6 +29,10 @@ export default function Settings() {
     const [usernameMessage, setUsernameMessage] = useState<Message>(null)
     const [savingUsername, setSavingUsername] = useState(false)
 
+    const [publicProfile, setPublicProfile] = useState(false)
+    const [profileMessage, setProfileMessage] = useState<Message>(null)
+    const [savingProfile, setSavingProfile] = useState(false)
+
     const [email, setEmail] = useState('')
     const [emailMessage, setEmailMessage] = useState<Message>(null)
     const [savingEmail, setSavingEmail] = useState(false)
@@ -53,7 +57,7 @@ export default function Settings() {
 
             const { data: profile } = await supabase
                 .from('users')
-                .select('username, avatar_url')
+                .select('username, avatar_url, public_profile')
                 .eq('id', user.id)
                 .single()
 
@@ -65,6 +69,7 @@ export default function Settings() {
             setCurrentUsername(profile?.username ?? '')
             setUsername(profile?.username ?? '')
             setAvatarUrl(profile?.avatar_url ?? null)
+            setPublicProfile(profile?.public_profile ?? false)
             setHasPassword(user.identities?.some((i) => i.provider === 'email') ?? true)
             setLoading(false)
         }
@@ -95,6 +100,31 @@ export default function Settings() {
 
         setAvatarUrl(next)
         shell.refresh()
+    }
+
+    async function handlePublicProfile(next: boolean) {
+        if (!userId || savingProfile) return
+
+        setSavingProfile(true)
+        setProfileMessage(null)
+
+        const { error } = await supabase
+            .from('users')
+            .update({ public_profile: next })
+            .eq('id', userId)
+
+        setSavingProfile(false)
+
+        if (error) {
+            setProfileMessage({ text: error.message, ok: false })
+            return
+        }
+
+        setPublicProfile(next)
+        setProfileMessage({
+            text: next ? 'Your profile is live.' : 'Your profile is hidden again.',
+            ok: true,
+        })
     }
 
     async function handleUsername(event: FormEvent<HTMLFormElement>) {
@@ -266,6 +296,42 @@ export default function Settings() {
                     </button>
                 </form>
                 <Notice message={usernameMessage} />
+            </section>
+
+            <section className="set-section">
+                <h2>Public profile</h2>
+                <label className="set-toggle">
+                    <input
+                        type="checkbox"
+                        checked={publicProfile}
+                        disabled={savingProfile || loading || !currentUsername}
+                        onChange={(e) => handlePublicProfile(e.target.checked)}
+                    />
+                    <span>
+                        Let anyone with your username see the wishlists you have already
+                        turned link-sharing on for.
+                    </span>
+                </label>
+
+                {currentUsername ? (
+                    <p className="set-empty">
+                        {publicProfile ? (
+                            <>
+                                Live at{' '}
+                                <a href={`/u/${currentUsername}`} target="_blank" rel="noreferrer">
+                                    /u/{currentUsername}
+                                </a>
+                                . Lists without a share link stay private.
+                            </>
+                        ) : (
+                            <>Nobody can reach /u/{currentUsername} while this is off.</>
+                        )}
+                    </p>
+                ) : (
+                    <p className="set-empty">Pick a username first.</p>
+                )}
+
+                <Notice message={profileMessage} />
             </section>
 
             <section className="set-section">

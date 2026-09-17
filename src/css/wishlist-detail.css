@@ -542,6 +542,34 @@ button.wl-fact:hover:not(:disabled) .wl-fact-value {
   gap: 7px;
 }
 
+.wish-detail-qty {
+  width: 64px;
+  box-sizing: border-box;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+}
+
+.wish-progress {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+
+.wish-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 240ms ease;
+}
+
+.wish-progress-fill--full {
+  background: var(--success);
+}
+
 .wish-detail-pledges {
   display: flex;
   flex-direction: column;

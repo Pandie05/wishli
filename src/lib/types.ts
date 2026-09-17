@@ -15,14 +15,22 @@ export type WishItem = {
   notes: string | null
   purchased: boolean
   priority: number | null
-  claimed_by: string | null
-  claimed_at: string | null
+  /** how many the owner wants; who reserved how many lives in item_claims */
+  quantity: number
   added_at: string
 }
 
 /** Every column the app reads back after writing an item. */
 export const WISH_COLUMNS =
-  'item_id, user_id, name, product_url, image_url, price, notes, purchased, priority, claimed_by, claimed_at, added_at'
+  'item_id, user_id, name, product_url, image_url, price, notes, purchased, priority, quantity, added_at'
+
+export type ItemClaim = {
+  claim_id: string
+  item_id: string
+  user_id: string
+  username: string
+  quantity: number
+}
 
 export type WishlistMember = {
   member_id: string
