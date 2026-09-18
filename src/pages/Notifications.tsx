@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { timeAgo } from '../lib/dates'
 import { supabase } from '../lib/supabase'
 import { useShell } from '../components/AppShell'
-import '../css/notifications-temp.css'
+import '../css/notifications.css'
 
 type Notification = {
   notification_id: string
@@ -19,6 +20,7 @@ export default function Notifications() {
   const shell = useShell()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
+  const [clearing, setClearing] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -63,15 +65,40 @@ export default function Notifications() {
     if (n.wishlist_id) navigate(`/wishlist/${n.wishlist_id}`)
   }
 
+  // rls already scopes this to your own rows, so no user filter is needed
+  async function markAllRead() {
+    if (clearing) return
+    setClearing(true)
+    await supabase.from('notifications').update({ is_read: true }).eq('is_read', false)
+    setClearing(false)
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })))
+    shell.refresh()
+  }
+
   async function remove(id: string) {
     await supabase.from('notifications').delete().eq('notification_id', id)
     setNotifications((prev) => prev.filter((n) => n.notification_id !== id))
     shell.refresh()
   }
 
+  const unread = notifications.filter((n) => !n.is_read).length
+
   return (
     <div className="notif">
-      <h1>Notifications</h1>
+      <header className="notif-head">
+        <div className="notif-headline">
+          <p className="notif-eyebrow">
+            {loading ? 'Loading' : unread > 0 ? `${unread} unread` : 'All caught up'}
+          </p>
+          <h1 className="notif-title">Notifications</h1>
+        </div>
+
+        {unread > 0 && (
+          <button type="button" className="notif-clear" onClick={markAllRead} disabled={clearing}>
+            {clearing ? 'Marking...' : 'Mark all read'}
+          </button>
+        )}
+      </header>
 
       <ul className="notif-list">
         {notifications.map((n) => (
@@ -79,16 +106,33 @@ export default function Notifications() {
             key={n.notification_id}
             className={n.is_read ? 'notif-item' : 'notif-item notif-item--unread'}
           >
-            <button type="button" className="notif-item-message" onClick={() => markRead(n)}>
+            <span className="notif-dot" aria-hidden="true" />
+
+            <button type="button" className="notif-message" onClick={() => markRead(n)}>
               {n.message}
+              {n.wishlist_id && <span className="notif-go">Open list</span>}
             </button>
-            <button type="button" onClick={() => remove(n.notification_id)}>
-              Dismiss
+
+            <time className="notif-when" dateTime={n.created_at}>
+              {timeAgo(n.created_at)}
+            </time>
+
+            <button
+              type="button"
+              className="notif-dismiss"
+              onClick={() => remove(n.notification_id)}
+              aria-label="Dismiss this notification"
+              title="Dismiss"
+            >
+              &times;
             </button>
           </li>
         ))}
+
         {!loading && notifications.length === 0 && (
-          <li className="notif-empty">no notifications yet</li>
+          <li className="notif-empty">
+            Nothing yet. Friend requests, claimed wishes and upcoming dates all land here.
+          </li>
         )}
       </ul>
     </div>

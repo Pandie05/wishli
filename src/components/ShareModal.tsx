@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import QRCode from 'qrcode'
 import Modal from './Modal'
 
 type Props = {
@@ -26,11 +25,18 @@ export default function ShareModal({ open, title, url, onClose }: Props) {
     let cancelled = false
     // blank rather than briefly showing the previous wishlist's code
     setQr(null)
-    QRCode.toDataURL(url, {
-      width: 512,
-      margin: 1,
-      color: { dark: '#101a33', light: '#ffffff' },
-    })
+
+    // imported here rather than at the top of the file so the encoder is only
+    // downloaded by people who actually open this modal -- it is a good chunk
+    // of script for something most sessions never touch
+    import('qrcode')
+      .then(({ default: QRCode }) =>
+        QRCode.toDataURL(url, {
+          width: 512,
+          margin: 1,
+          color: { dark: '#101a33', light: '#ffffff' },
+        }),
+      )
       .then((data) => {
         if (!cancelled) setQr(data)
       })

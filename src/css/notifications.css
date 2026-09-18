@@ -1,0 +1,208 @@
+/* Notifications — same editorial frame as the dashboard and friends pages.
+   Unread is carried by a small accent dot and a heavier message rather than a
+   tinted row: a full-width wash on every unread item turned the list into a
+   block of colour once a few piled up. */
+
+.notif {
+  --pad: 44px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- header ------------------------------------------------------------ */
+
+.notif-head {
+  display: flex;
+  align-items: flex-end;
+  gap: 24px;
+  padding: 30px var(--pad) 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.notif-headline {
+  min-width: 0;
+}
+
+.notif-eyebrow {
+  margin: 0 0 8px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.notif-title {
+  margin: 0;
+  font-size: clamp(2.6rem, 4.6vw, 3.75rem);
+  font-weight: 700;
+  letter-spacing: -0.038em;
+  line-height: 0.95;
+  color: var(--heading);
+}
+
+.notif-clear {
+  flex: none;
+  margin-left: auto;
+  margin-bottom: 9px;
+  padding: 9px 18px;
+  border-radius: var(--radius-sm);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ---- list -------------------------------------------------------------- */
+
+.notif-list {
+  list-style: none;
+  flex: 1;
+  margin: 0;
+  padding: 0 var(--pad) 56px;
+}
+
+.notif-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.notif-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.notif-item--unread .notif-dot {
+  background: var(--accent);
+}
+
+.notif-message {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  text-align: left;
+  color: var(--label);
+  overflow-wrap: anywhere;
+}
+
+.notif-message:hover:not(:disabled) {
+  border-color: transparent;
+  background: none;
+  color: var(--heading);
+}
+
+.notif-item--unread .notif-message {
+  font-weight: 600;
+  color: var(--heading);
+}
+
+/* only shows on hover so the list stays quiet at rest */
+.notif-go {
+  flex: none;
+  opacity: 0;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  transition: opacity 0.15s ease;
+}
+
+.notif-message:hover .notif-go,
+.notif-message:focus-visible .notif-go {
+  opacity: 1;
+}
+
+.notif-when {
+  flex: none;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.notif-dismiss {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-color: transparent;
+  border-radius: 50%;
+  background: none;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--muted);
+}
+
+.notif-dismiss:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--surface-sunken);
+  color: var(--danger);
+}
+
+.notif-empty {
+  padding: 26px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+/* ---- responsive -------------------------------------------------------- */
+
+@media (max-width: 1000px) {
+  .notif {
+    --pad: 20px;
+  }
+}
+
+@media (max-width: 560px) {
+  .notif-head {
+    flex-wrap: wrap;
+  }
+
+  .notif-clear {
+    margin-left: 0;
+  }
+
+  /* the timestamp drops under the message instead of competing with it for
+     what little width is left */
+  .notif-item {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+
+  .notif-message {
+    flex-basis: calc(100% - 56px);
+  }
+
+  .notif-when {
+    order: 3;
+    margin-left: 18px;
+  }
+
+  /* there is no hover on touch to reveal it, and inline it just steals width
+     from the message -- tapping the message still opens the list either way */
+  .notif-go {
+    display: none;
+  }
+}

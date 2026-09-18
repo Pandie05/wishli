@@ -1,9 +1,9 @@
 import { Navigate, useParams } from 'react-router-dom'
 import Login from './Login'
 import Signup from './Signup'
-import loginImage from '../images/login-image.png'
-import loginImageMask from '../images/login-image-mask.png'
-import logo from '../images/logo.png'
+import loginImage from '../images/login-image.webp'
+import loginImageMask from '../images/login-image-mask.webp'
+import logo from '../images/logo.webp'
 import '../css/auth.css'
 import '../css/login.css'
 

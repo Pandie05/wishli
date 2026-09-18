@@ -115,8 +115,17 @@ export default function WishlistDetail() {
         .from('wishlist_members')
         .select('member_id, user_id, role')
         .eq('wishlist_id', wishlistId),
-      supabase.from('item_contributions').select('contribution_id, item_id, user_id, amount'),
-      supabase.from('item_claims').select('claim_id, item_id, user_id, quantity'),
+      // the !inner join is what scopes these to this list. without it rls
+      // still allows the read, so it returned every pledge and every claim
+      // on every list this account can see, to render one of them
+      supabase
+        .from('item_contributions')
+        .select('contribution_id, item_id, user_id, amount, items!inner(wishlist_id)')
+        .eq('items.wishlist_id', wishlistId),
+      supabase
+        .from('item_claims')
+        .select('claim_id, item_id, user_id, quantity, items!inner(wishlist_id)')
+        .eq('items.wishlist_id', wishlistId),
       supabase
         .from('friend_requests')
         .select('sender_id, receiver_id, status')
@@ -174,15 +183,18 @@ export default function WishlistDetail() {
     for (const c of contribRows ?? []) ids.add(c.user_id)
     for (const c of claimRows ?? []) ids.add(c.user_id)
 
-    // rls on public.users only exposes your own row, so each name comes from
-    // the security-definer function -- they at least all go out together
+    // rls on public.users only exposes your own row, so names come from a
+    // security-definer function -- usernames_for_ids (018) answers for the
+    // whole set at once rather than one request per person
+    const { data: nameRows } = ids.size
+      ? await supabase.rpc('usernames_for_ids', { ids: [...ids] })
+      : { data: [] }
+
     const resolved = Object.fromEntries(
-      await Promise.all(
-        [...ids].map(async (id) => {
-          const { data: name } = await supabase.rpc('username_for_id', { id })
-          return [id, (name as string) ?? 'someone'] as const
-        }),
-      ),
+      ((nameRows ?? []) as { id: string; username: string | null }[]).map((row) => [
+        row.id,
+        row.username ?? 'someone',
+      ]),
     ) as Record<string, string>
 
     setNames(resolved)

@@ -14,6 +14,7 @@ import '../css/dashboard.css'
 type ItemRow = {
   item_id: string
   wishlist_id: string
+  name: string
   price: number | null
   image_url: string | null
   quantity: number
@@ -167,7 +168,7 @@ export default function Dashboard() {
           .order('created_at', { ascending: false }),
         supabase
           .from('items')
-          .select('item_id, wishlist_id, price, image_url, quantity, added_at')
+          .select('item_id, wishlist_id, name, price, image_url, quantity, added_at')
           .order('added_at', { ascending: false }),
         supabase.from('wishlist_members').select('wishlist_id, user_id'),
         supabase.from('item_claims').select('item_id, user_id, quantity'),
@@ -193,13 +194,17 @@ export default function Dashboard() {
     // notifications only carry the sender's id; the username behind it comes
     // from the same security-definer function the friends page uses
     const ids = [...new Set((notifRows ?? []).map((n) => n.sender_id).filter(Boolean))] as string[]
-    const names = await Promise.all(
-      ids.map(async (id) => {
-        const { data: name } = await supabase.rpc('username_for_id', { id })
-        return [id, (name as string) ?? 'Someone'] as const
-      }),
+    if (ids.length === 0) return
+
+    const { data: nameRows } = await supabase.rpc('usernames_for_ids', { ids })
+    setSenderNames(
+      Object.fromEntries(
+        ((nameRows ?? []) as { id: string; username: string | null }[]).map((row) => [
+          row.id,
+          row.username ?? 'Someone',
+        ]),
+      ),
     )
-    setSenderNames(Object.fromEntries(names))
   }, [navigate])
 
   useEffect(() => {
@@ -264,10 +269,31 @@ export default function Dashboard() {
     [owned, totals],
   )
 
+  /**
+   * Which wishes match the search, per list. Searching only list names meant
+   * you had to already know where you put something to find it -- the whole
+   * point of searching for "socks" is that you do not.
+   */
+  const itemMatches = useMemo(() => {
+    const needle = query.trim().toLowerCase()
+    if (!needle) return {}
+
+    const byList: Record<string, string[]> = {}
+    for (const item of items) {
+      if (!item.name?.toLowerCase().includes(needle)) continue
+      byList[item.wishlist_id] = [...(byList[item.wishlist_id] ?? []), item.name]
+    }
+    return byList
+  }, [items, query])
+
   const visible = useMemo(() => {
     const base = includeShared ? wishlists : owned
     const needle = query.trim().toLowerCase()
-    const filtered = needle ? base.filter((w) => w.name.toLowerCase().includes(needle)) : base
+    const filtered = needle
+      ? base.filter(
+          (w) => w.name.toLowerCase().includes(needle) || itemMatches[w.wishlist_id]?.length,
+        )
+      : base
 
     const sorted = [...filtered]
     if (sort === 'az') sorted.sort((a, b) => a.name.localeCompare(b.name))
@@ -276,7 +302,7 @@ export default function Dashboard() {
     else if (sort === 'upcoming')
       sorted.sort((a, b) => daysUntil(a.target_date) - daysUntil(b.target_date))
     return sorted
-  }, [wishlists, owned, includeShared, query, sort, totals])
+  }, [wishlists, owned, includeShared, query, sort, totals, itemMatches])
 
   async function deleteWishlist() {
     if (!pendingDelete || deleting) return
@@ -375,8 +401,8 @@ export default function Dashboard() {
             </svg>
             <input
               type="text"
-              placeholder="Search"
-              aria-label="Search wishlists"
+              placeholder="Search lists and wishes"
+              aria-label="Search wishlists and wishes"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -473,6 +499,10 @@ export default function Dashboard() {
               const spent = totals[w.wishlist_id] ?? 0
               const friends = memberCounts[w.wishlist_id] ?? 0
               const overBudget = w.budget != null && spent > w.budget
+              // only worth saying when the list itself is not the obvious hit
+              const matched = itemMatches[w.wishlist_id] ?? []
+              const showMatches =
+                matched.length > 0 && !w.name.toLowerCase().includes(query.trim().toLowerCase())
 
               return (
                 <li key={w.wishlist_id} className="dash-card">
@@ -531,6 +561,13 @@ export default function Dashboard() {
                       {w.budget != null && <small> / {money(w.budget)}</small>}
                     </span>
                   </div>
+
+                  {showMatches && (
+                    <p className="dash-card-match">
+                      <span>Matches</span> {matched.slice(0, 3).join(', ')}
+                      {matched.length > 3 && ` +${matched.length - 3} more`}
+                    </p>
+                  )}
 
                   {(w.occasion || w.target_date) && (
                     <p

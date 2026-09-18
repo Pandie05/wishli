@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 import { USERNAME_TAKEN, usernameTaken, validateUsername } from '../lib/username'
 import { useShell } from '../components/AppShell'
 import ImageDrop from '../components/ImageDrop'
-import '../css/settings-temp.css'
+import '../css/settings.css'
 
 type Message = { text: string; ok: boolean } | null
 
@@ -262,10 +262,16 @@ export default function Settings() {
 
     return (
         <div className="set">
-            <h1>Settings</h1>
+            <header className="set-head">
+                <p className="set-eyebrow">{accountEmail || 'Your account'}</p>
+                <h1 className="set-title">Settings</h1>
+            </header>
 
             <section className="set-section">
-                <h2>Profile picture</h2>
+                <div className="set-section-head">
+                    <span className="set-section-num">01</span>
+                    <h2>Profile picture</h2>
+                </div>
                 <ImageDrop
                     value={avatarUrl}
                     onChange={handleAvatarChange}
@@ -278,7 +284,10 @@ export default function Settings() {
             </section>
 
             <section className="set-section">
-                <h2>Username</h2>
+                <div className="set-section-head">
+                    <span className="set-section-num">02</span>
+                    <h2>Username</h2>
+                </div>
                 <form className="set-form" onSubmit={handleUsername}>
                     <div className="set-field">
                         <label htmlFor="set-username">Username</label>
@@ -299,7 +308,10 @@ export default function Settings() {
             </section>
 
             <section className="set-section">
-                <h2>Public profile</h2>
+                <div className="set-section-head">
+                    <span className="set-section-num">03</span>
+                    <h2>Public profile</h2>
+                </div>
                 <label className="set-toggle">
                     <input
                         type="checkbox"
@@ -335,7 +347,10 @@ export default function Settings() {
             </section>
 
             <section className="set-section">
-                <h2>Email</h2>
+                <div className="set-section-head">
+                    <span className="set-section-num">04</span>
+                    <h2>Email</h2>
+                </div>
                 <form className="set-form" onSubmit={handleEmail}>
                     <div className="set-field">
                         <label htmlFor="set-email">Email</label>
@@ -356,7 +371,10 @@ export default function Settings() {
             </section>
 
             <section className="set-section">
-                <h2>Password</h2>
+                <div className="set-section-head">
+                    <span className="set-section-num">05</span>
+                    <h2>Password</h2>
+                </div>
                 {hasPassword ? (
                     <>
                         <form className="set-form" onSubmit={handlePassword}>

@@ -1,0 +1,98 @@
+/* The crash screen. Deliberately the same editorial voice as the dashboard --
+   an oversized heading over hairline rules -- so a failure still looks like
+   part of the app rather than a browser error page. */
+
+.crash {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 44px 20px;
+  background: var(--page-bg);
+}
+
+.crash-inner {
+  width: 100%;
+  max-width: 520px;
+}
+
+.crash-eyebrow {
+  margin: 0 0 10px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--danger);
+}
+
+.crash-title {
+  margin: 0 0 18px;
+  font-size: clamp(2.2rem, 6vw, 3.25rem);
+  font-weight: 700;
+  letter-spacing: -0.038em;
+  line-height: 0.95;
+  color: var(--heading);
+}
+
+.crash-note {
+  margin: 0 0 26px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--label);
+}
+
+.crash-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.crash-actions button {
+  padding: 11px 24px;
+  border-radius: var(--radius-sm);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.crash-primary {
+  border-color: transparent;
+  background: var(--accent);
+  color: #fff;
+}
+
+.crash-primary:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--accent-hover);
+}
+
+.crash-details {
+  margin-top: 28px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.crash-details summary {
+  cursor: pointer;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.crash-details pre {
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  overflow-x: auto;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--label);
+  white-space: pre-wrap;
+  word-break: break-word;
+}

@@ -1,0 +1,291 @@
+/* Friends — the dashboard's editorial language applied to three lists:
+   full-bleed hairline bands, an oversized heading, and tiny letterspaced
+   uppercase section labels carrying an ordinal.
+
+   Same rule as dashboard.css: no horizontal padding on the bands themselves,
+   --pad lives on their children, so every rule runs from the sidebar to the
+   window edge. */
+
+.fr {
+  --pad: 44px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- header ------------------------------------------------------------ */
+
+.fr-head {
+  display: flex;
+  align-items: flex-end;
+  gap: 24px;
+  padding: 30px var(--pad) 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.fr-headline {
+  min-width: 0;
+}
+
+.fr-eyebrow {
+  margin: 0 0 8px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.fr-title {
+  margin: 0;
+  font-size: clamp(2.6rem, 4.6vw, 3.75rem);
+  font-weight: 700;
+  letter-spacing: -0.038em;
+  line-height: 0.95;
+  color: var(--heading);
+}
+
+.fr-add {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  padding-bottom: 9px;
+}
+
+.fr-add-field {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  width: 232px;
+  padding: 0 13px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  transition: box-shadow 0.15s ease;
+}
+
+.fr-add-field:focus-within {
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.fr-add-at {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* inside the field it is just text, same as the dashboard search */
+.fr-add-field input[type='text'] {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 0;
+  border: 0;
+  background: none;
+  font-size: 0.8125rem;
+}
+
+.fr-add-field input[type='text']:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.fr-add-go {
+  flex: none;
+  padding: 11px 24px;
+  border-color: transparent;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.fr-add-go:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: transparent;
+}
+
+.fr-error {
+  margin: 16px var(--pad) 0;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 0.875rem;
+}
+
+/* ---- sections ---------------------------------------------------------- */
+
+.fr-body {
+  flex: 1;
+  padding: 0 var(--pad) 56px;
+}
+
+.fr-section {
+  padding-top: 30px;
+}
+
+.fr-section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.fr-section-num {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--border-strong);
+}
+
+.fr-section-head h2 {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--label);
+}
+
+.fr-section-count {
+  margin-left: auto;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+.fr-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* ---- rows -------------------------------------------------------------- */
+
+.fr-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.fr-avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* an unanswered request reads as provisional rather than connected */
+.fr-avatar--pending {
+  background: var(--surface-sunken);
+  color: var(--muted);
+}
+
+.fr-name {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  min-width: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--heading);
+  overflow-wrap: anywhere;
+}
+
+.fr-name small {
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.fr-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.fr-actions button {
+  padding: 7px 15px;
+  border-radius: var(--radius-sm);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.fr-accept {
+  border-color: transparent;
+  background: var(--accent);
+  color: #fff;
+}
+
+.fr-accept:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--accent-hover);
+}
+
+.fr-remove:hover:not(:disabled) {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.fr-empty {
+  padding: 22px 0 24px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+/* ---- responsive -------------------------------------------------------- */
+
+@media (max-width: 1000px) {
+  .fr {
+    --pad: 20px;
+  }
+
+  .fr-head {
+    flex-wrap: wrap;
+  }
+
+  .fr-add {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .fr-add-field {
+    flex: 1;
+    width: auto;
+  }
+}
+
+@media (max-width: 560px) {
+  /* the name wraps under the avatar rather than squeezing the buttons off
+     the row, which is what a long username used to do */
+  .fr-row {
+    flex-wrap: wrap;
+    gap: 10px 12px;
+  }
+
+  .fr-actions {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .fr-actions button {
+    flex: 1;
+  }
+}

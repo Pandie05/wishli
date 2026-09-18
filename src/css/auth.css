@@ -25,7 +25,7 @@
   --login-muted: #9b9ba7;
   --login-placeholder: #b6b6c1;
 
-  /* The frame keeps login-image.png's own 633x980 ratio so the photo is never
+  /* The frame keeps login-image.webp's own 633x980 ratio so the photo is never
      cropped and the cut-out overlay stays registered to it. Deriving the width
      from the height keeps the slide distance computable below. */
   --art-gap: 26px;
@@ -74,7 +74,7 @@
 
 /* ---------------------------------------------------------------- logo --- */
 
-/* logo.png is a 148px canvas with the mark inset ~30% on each side, so the box
+/* logo.webp is a 148px canvas with the mark inset ~30% on each side, so the box
    has to be much larger than the mark you actually see.
  *
  * It rides the same --slide and swaps sides with the artwork, travelling the
@@ -170,7 +170,7 @@
   object-fit: cover;
 }
 
-/* login-image-mask.png is the same art at 1:1 with the background cut away.
+/* login-image-mask.webp is the same art at 1:1 with the background cut away.
    It is 735x980 against the base's 633x980 and sits at x = -64, so the
    dandelions spill past both edges of the rounded frame.
      left  = -64 / 633 = -10.111%
