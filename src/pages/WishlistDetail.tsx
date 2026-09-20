@@ -267,9 +267,11 @@ export default function WishlistDetail() {
   )
 
   /**
-   * First open with no token yet generates one; after that the same link is
-   * shown every time. A token is never cleared here -- turning sharing back
-   * off would need its own explicit control.
+   * The token is the list's public switch: having one is what opens
+   * /share/<token> and what puts the list on /u/<username>. Sharing a list
+   * that is still private therefore makes it public, and the same link is
+   * shown every time after that. Turning it back off is the Private segment
+   * in Edit list, which clears the token.
    */
   async function handleShare() {
     if (sharing || !wishlist) return
@@ -384,9 +386,17 @@ export default function WishlistDetail() {
                   type="button"
                   onClick={handleShare}
                   disabled={sharing}
-                  title="Anyone with the link can view this wishlist, read-only — they still need to sign in to reserve anything."
+                  title={
+                    wishlist?.share_token
+                      ? 'Anyone with the link can view this wishlist, read-only — they still need to sign in to reserve anything.'
+                      : 'Makes this wishlist public: read-only to anyone with the link, and listed on your profile page.'
+                  }
                 >
-                  {sharing ? 'Creating link...' : 'Share link'}
+                  {sharing
+                    ? 'Creating link...'
+                    : wishlist?.share_token
+                      ? 'Share link'
+                      : 'Make public'}
                 </button>
               )}
 

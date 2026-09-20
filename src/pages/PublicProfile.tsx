@@ -37,17 +37,22 @@ export default function PublicProfile() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [wishlists, setWishlists] = useState<ProfileWishlist[]>([])
   const [loading, setLoading] = useState(true)
+  // this page has no shell, so a signed-in visitor arriving from the friends
+  // page needs a way back that is not the browser's back button
+  const [signedIn, setSignedIn] = useState(false)
 
   useEffect(() => {
     let cancelled = false
 
     async function load() {
-      const [{ data: found }, { data: rows }] = await Promise.all([
+      const [{ data: found }, { data: rows }, { data: session }] = await Promise.all([
         supabase.rpc('get_public_profile', { handle: username }).maybeSingle(),
         supabase.rpc('get_public_profile_wishlists', { handle: username }),
+        supabase.auth.getSession(),
       ])
 
       if (cancelled) return
+      setSignedIn(!!session.session)
       setProfile((found as Profile | null) ?? null)
       setWishlists((rows ?? []) as ProfileWishlist[])
       setLoading(false)
@@ -83,8 +88,8 @@ export default function PublicProfile() {
         <span className="shared-brand">
           wishli<span className="shared-brand-dot" />
         </span>
-        <Link to="/login" className="shared-cta">
-          Make your own
+        <Link to={signedIn ? '/dashboard' : '/login'} className="shared-cta">
+          {signedIn ? 'Back to wishli' : 'Make your own'}
         </Link>
       </header>
 

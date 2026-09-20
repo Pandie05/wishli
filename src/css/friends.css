@@ -1,13 +1,19 @@
-/* Friends — the dashboard's editorial language applied to three lists:
-   full-bleed hairline bands, an oversized heading, and tiny letterspaced
-   uppercase section labels carrying an ordinal.
+/* Friends — the dashboard's frame, applied to people instead of lists: the
+   same header band, the same four-cell stat strip, and the same
+   content-plus-rail split below it. Your friends are the content; the two
+   piles of unanswered requests are the rail, which is where the dashboard
+   already puts "things that happened, deal with them".
 
    Same rule as dashboard.css: no horizontal padding on the bands themselves,
    --pad lives on their children, so every rule runs from the sidebar to the
-   window edge. */
+   window edge. The tokens are shared with dashboard.css deliberately -- the
+   two pages have to measure the same or the rail does not line up when you
+   navigate between them. */
 
 .fr {
+  --rail-w: 290px;
   --pad: 44px;
+  --gutter: 20px;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -121,8 +127,8 @@
   margin: 0;
   padding: 6px;
   border-radius: var(--radius-md);
-  background: var(--surface);
-  box-shadow: var(--shadow-card-hover);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-pop);
   overflow: hidden;
 }
 
@@ -173,75 +179,182 @@
   font-size: 0.875rem;
 }
 
-/* ---- sections ---------------------------------------------------------- */
+/* ---- stat strip -------------------------------------------------------- */
 
-.fr-body {
-  flex: 1;
-  padding: 0 var(--pad) 56px;
-}
-
-.fr-section {
-  padding-top: 30px;
-}
-
-.fr-section-head {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  padding-bottom: 12px;
+/* the fourth cell is exactly the rail's width so its left rule lines up with
+   the rail's own border below it, the same trick dashboard.css uses */
+.fr-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) var(--rail-w);
   border-bottom: 1px solid var(--border);
 }
 
-.fr-section-num {
+.fr-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px 0 28px;
+}
+
+.fr-stat + .fr-stat {
+  padding-left: var(--gutter);
+  border-left: 1px solid var(--border);
+}
+
+.fr-stat:first-child {
+  padding-left: var(--pad);
+}
+
+.fr-stat:last-child {
+  padding-right: var(--pad);
+}
+
+.fr-stat-label {
+  display: flex;
+  gap: 7px;
   font-size: 0.625rem;
   font-weight: 600;
   letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.fr-stat-label b {
+  font-weight: 600;
   color: var(--border-strong);
 }
 
-.fr-section-head h2 {
+.fr-stat-value {
+  font-size: 2.25rem;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  color: var(--heading);
+}
+
+.fr-stat-value small {
+  font-size: 1.125rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--muted);
+}
+
+.fr-stat-idle {
+  color: var(--border-strong);
+  font-style: normal;
+}
+
+/* ---- two-column body --------------------------------------------------- */
+
+.fr-cols {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--rail-w);
+}
+
+.fr-main {
+  min-width: 0;
+  padding: 26px 24px 48px var(--pad);
+}
+
+.fr-main-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.fr-main-head h2 {
   margin: 0;
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--label);
 }
 
-.fr-section-count {
+.fr-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 220px;
   margin-left: auto;
-  font-size: 0.625rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  transition: box-shadow 0.15s ease;
+}
+
+.fr-filter:focus-within {
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.fr-filter svg {
+  flex: none;
+  width: 13px;
+  height: 13px;
   color: var(--muted);
 }
 
-.fr-list {
+.fr-filter input[type='text'] {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 0;
+  border: 0;
+  background: none;
+  font-size: 0.75rem;
+}
+
+.fr-filter input[type='text']:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+/* ---- friend cards ------------------------------------------------------ */
+
+.fr-grid {
   list-style: none;
   margin: 0;
   padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
 }
 
-/* ---- rows -------------------------------------------------------------- */
-
-.fr-row {
+.fr-card {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--border);
+  gap: 12px;
+  padding: 14px 14px 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.fr-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-card);
 }
 
 .fr-avatar {
   display: grid;
   place-items: center;
   flex: none;
-  width: 34px;
-  height: 34px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   background: var(--accent-soft);
   color: var(--accent);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.02em;
+  overflow: hidden;
+}
+
+.fr-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 /* an unanswered request reads as provisional rather than connected */
@@ -250,35 +363,220 @@
   color: var(--muted);
 }
 
-.fr-name {
-  display: flex;
-  align-items: baseline;
-  gap: 9px;
+.fr-card-text {
   min-width: 0;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--heading);
-  overflow-wrap: anywhere;
+  flex: 1;
 }
 
-.fr-name small {
-  font-size: 0.5625rem;
+.fr-card-name {
+  display: block;
+  font-size: 0.9375rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: -0.015em;
+  color: var(--heading);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fr-card-name:hover {
+  color: var(--accent);
+}
+
+.fr-card-meta {
+  margin: 3px 0 0;
+  font-size: 0.6875rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- the ⋯ menu on a card ---------------------------------------------- */
+
+.fr-menu-wrap {
+  position: relative;
+  flex: none;
+  margin-left: auto;
+}
+
+.fr-menu {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-color: transparent;
+  border-radius: 50%;
+  background: none;
+  font-size: 0.9375rem;
+  line-height: 1;
+  color: var(--muted);
+  /* on a touch screen there is no hover to reveal it, so unlike the
+     dashboard's card menu this one is always visible -- it is the only way
+     to reach remove and share at all */
+  opacity: 0.7;
+  transition: opacity 0.15s ease;
+}
+
+.fr-card:hover .fr-menu,
+.fr-menu:focus-visible,
+.fr-menu[aria-expanded='true'] {
+  opacity: 1;
+}
+
+.fr-menu:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--surface-sunken);
+  color: var(--heading);
+}
+
+.fr-pop {
+  position: absolute;
+  top: 32px;
+  right: 0;
+  z-index: 3;
+  width: 168px;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-pop);
+}
+
+.fr-pop button,
+.fr-pop a {
+  display: block;
+  width: 100%;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  font: inherit;
+  font-size: 0.8125rem;
+  text-align: left;
+  text-decoration: none;
+  color: var(--label);
+}
+
+.fr-pop button:hover:not(:disabled),
+.fr-pop a:hover {
+  border-color: transparent;
+  background: var(--surface-sunken);
+}
+
+.fr-pop-danger:hover:not(:disabled) {
+  color: var(--danger);
+}
+
+.fr-empty {
+  grid-column: 1 / -1;
+  padding: 26px 0;
+  border-top: 1px solid var(--border);
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+/* ---- the rail: incoming and sent --------------------------------------- */
+
+.fr-rail {
+  padding: 26px var(--pad) 48px var(--gutter);
+  border-left: 1px solid var(--border);
+}
+
+.fr-rail-section + .fr-rail-section {
+  margin-top: 24px;
+}
+
+.fr-rail-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--muted);
 }
 
-.fr-actions {
-  display: flex;
-  gap: 8px;
+.fr-rail-count {
   margin-left: auto;
+  min-width: 17px;
+  padding: 2px 6px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: center;
 }
 
-.fr-actions button {
-  padding: 7px 15px;
-  border-radius: var(--radius-sm);
+.fr-rail-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.fr-rail-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 9px;
+  align-items: center;
+}
+
+/* the avatar spans both rows so the buttons tuck under the name rather than
+   starting back at the rail's left edge */
+.fr-rail-row .fr-avatar {
+  grid-row: span 2;
+  align-self: start;
+  width: 30px;
+  height: 30px;
   font-size: 0.625rem;
+}
+
+.fr-rail-text {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.fr-rail-name {
+  min-width: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--heading);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fr-rail-when {
+  flex: none;
+  margin-left: auto;
+  font-size: 0.625rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.fr-rail-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.fr-rail-actions button {
+  flex: 1;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -295,19 +593,80 @@
   background: var(--accent-hover);
 }
 
-.fr-remove:hover:not(:disabled) {
-  border-color: var(--danger);
-  color: var(--danger);
+.fr-rail-empty {
+  font-size: 0.6875rem;
+  color: var(--muted);
 }
 
-.fr-empty {
-  padding: 22px 0 24px;
-  border-bottom: 1px solid var(--border);
+/* ---- the "add to a wishlist" modal ------------------------------------- */
+
+/* these live here rather than in wishlist-detail.css, even though they look
+   like that page's people list: the modal is opened from here, and that
+   stylesheet only ships in the wishlist page's chunk */
+.fr-share-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fr-share-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+}
+
+.fr-share-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fr-share-tag {
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.fr-share-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.fr-share-actions button {
+  padding: 5px 9px;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.fr-share-empty {
   font-size: 0.8125rem;
   color: var(--muted);
 }
 
 /* ---- responsive -------------------------------------------------------- */
+
+@media (max-width: 1240px) {
+  .fr {
+    --rail-w: 250px;
+    --pad: 28px;
+  }
+}
 
 @media (max-width: 1000px) {
   .fr {
@@ -327,22 +686,51 @@
     flex: 1;
     width: auto;
   }
+
+  .fr-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fr-stat:nth-child(odd) {
+    padding-left: var(--pad);
+    border-left: 0;
+  }
+
+  .fr-stat:nth-child(2) {
+    padding-right: var(--pad);
+  }
+
+  .fr-stat:nth-child(3),
+  .fr-stat:nth-child(4) {
+    border-top: 1px solid var(--border);
+  }
+
+  .fr-cols {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .fr-main {
+    padding-right: var(--pad);
+  }
+
+  .fr-rail {
+    padding: 22px var(--pad) 40px;
+    border-left: 0;
+    border-top: 1px solid var(--border);
+  }
 }
 
-@media (max-width: 560px) {
-  /* the name wraps under the avatar rather than squeezing the buttons off
-     the row, which is what a long username used to do */
-  .fr-row {
-    flex-wrap: wrap;
-    gap: 10px 12px;
+@media (max-width: 620px) {
+  .fr-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .fr-actions {
+  .fr-main-head {
+    flex-wrap: wrap;
+  }
+
+  .fr-filter {
     width: 100%;
     margin-left: 0;
-  }
-
-  .fr-actions button {
-    flex: 1;
   }
 }
