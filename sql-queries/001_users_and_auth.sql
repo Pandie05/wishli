@@ -206,6 +206,10 @@ $$;
 revoke all on function public.user_id_for_username(text) from public;
 grant execute on function public.user_id_for_username(text) to authenticated;
 
+-- NOTE: 007 replaces this one with a version that falls back to 'Someone'
+-- rather than returning null. Every notification message concatenates it into
+-- a sentence, and `null || '...'` is null in SQL -- so a missing name blanked
+-- the whole message rather than just the name.
 create or replace function public.username_for_id(id uuid)
 returns text
 language sql

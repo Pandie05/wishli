@@ -84,7 +84,9 @@ export default function ShareModal({ open, title, url, onClose }: Props) {
 
         <p className="field-note">
           Read-only: they can see the list and what is left, but reserving something still
-          needs an account. Point a phone camera at the code to open it.
+          needs an account. Point a phone camera at the code to open it. The list is public
+          while this link exists, so it is also on your profile page -- switch it back to
+          Private in Edit list to close both.
         </p>
 
         {qr && (

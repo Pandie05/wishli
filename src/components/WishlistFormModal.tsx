@@ -59,6 +59,9 @@ export default function WishlistFormModal({ open, userId, wishlist, onClose, onS
   const [occasion, setOccasion] = useState('')
   const [targetDate, setTargetDate] = useState('')
   const [budget, setBudget] = useState('')
+  // a list is public exactly when it has a share token: that one column is
+  // what opens /share/<token> and what puts it on /u/<username>
+  const [isPublic, setIsPublic] = useState(false)
   const [invited, setInvited] = useState<Friend[]>([])
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -72,6 +75,7 @@ export default function WishlistFormModal({ open, userId, wishlist, onClose, onS
     setOccasion(wishlist?.occasion ?? '')
     setTargetDate(wishlist?.target_date ?? '')
     setBudget(wishlist?.budget != null ? clampMoney(String(wishlist.budget)) : '')
+    setIsPublic(!!wishlist?.share_token)
     setInvited([])
     setError(null)
   }, [open, wishlist])
@@ -96,6 +100,10 @@ export default function WishlistFormModal({ open, userId, wishlist, onClose, onS
       description: description.trim() || null,
       occasion: occasion || null,
       target_date: targetDate || null,
+      // going public keeps whatever token the list already had, so a link
+      // that is already out there does not quietly change under people.
+      // going private clears it, which is what actually closes those links.
+      share_token: isPublic ? (wishlist?.share_token ?? crypto.randomUUID()) : null,
     }
 
     const query = editing
@@ -221,26 +229,39 @@ export default function WishlistFormModal({ open, userId, wishlist, onClose, onS
           <MoneyInput placeholder="0.00" value={budget} onChange={setBudget} />
         </label>
 
-        {/* the three-way control is drawn as designed, but only Private is
-            real today: a list is visible to its owner and to the friends
-            invited below it, and nothing else is wired to open it wider */}
+        {/* two real states, not three: public means the list has a share
+            token, which is the same column /share/<token> and the profile
+            page at /u/<username> both read */}
         <div className="field">
           <span className="field-label">Privacy</span>
           <div className="segments">
-            <button type="button" className="segment" aria-pressed={false} disabled>
-              Friends only
+            <button
+              type="button"
+              className="segment"
+              aria-pressed={isPublic}
+              onClick={() => setIsPublic(true)}
+            >
+              Public
             </button>
-            <button type="button" className="segment" aria-pressed={false} disabled>
-              Link only
-            </button>
-            <button type="button" className="segment" aria-pressed={true} disabled>
+            <button
+              type="button"
+              className="segment"
+              aria-pressed={!isPublic}
+              onClick={() => setIsPublic(false)}
+            >
               Private
             </button>
           </div>
           <p className="field-note">
-            Private to you and the friends you invite below. The other two modes are not
-            available yet.
+            {isPublic
+              ? 'Listed on your profile page and openable by anyone with the link. Reserving something still needs an account, and your profile has to be switched on in Settings.'
+              : 'Only you and the people you invite below. Private never hides the list from them.'}
           </p>
+          {editing && !isPublic && wishlist?.share_token && (
+            <p className="field-note">
+              Saving this turns off the share link that is already out there.
+            </p>
+          )}
         </div>
 
         <div className="field">

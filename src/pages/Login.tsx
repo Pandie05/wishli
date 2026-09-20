@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import GoogleSignInButton from '../components/GoogleSignInButton'
-import { supabase } from '../lib/supabase'
+import { getRememberMe, setRememberMe, supabase } from '../lib/supabase'
 
 const BAD_CREDENTIALS = 'Incorrect email/username or password.'
 
@@ -26,6 +26,7 @@ export default function Login() {
   const navigate = useNavigate()
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
+  const [remember, setRemember] = useState(getRememberMe)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -43,6 +44,10 @@ export default function Login() {
     setSubmitting(true)
 
     try {
+      // Has to happen before the sign-in call so the session Supabase writes
+      // goes straight into the store the user picked.
+      setRememberMe(remember)
+
       const email = await resolveEmail(trimmed)
 
       // No account owns that username. Say the same thing as a wrong password
@@ -83,7 +88,7 @@ export default function Login() {
         your wishlists are waiting for you.
       </p>
 
-      <GoogleSignInButton />
+      <GoogleSignInButton remember={remember} />
 
       <div className="login-divider">or continue with email</div>
 
@@ -113,6 +118,15 @@ export default function Login() {
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
+
+        <label className="login-remember">
+          <input
+            type="checkbox"
+            checked={remember}
+            onChange={(e) => setRemember(e.target.checked)}
+          />
+          Remember me
+        </label>
 
         {error && (
           <p className="login-error" role="alert">

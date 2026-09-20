@@ -216,6 +216,25 @@
   color: var(--accent);
 }
 
+/* ---- session ----------------------------------------------------------- */
+
+/* outlined rather than filled: it sits under everything else on the page and
+   should not read as the thing to press */
+.set-logout {
+  align-self: flex-start;
+  padding: 11px 24px;
+  border-radius: var(--radius-sm);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.set-logout:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
 /* ---- responsive -------------------------------------------------------- */
 
 @media (max-width: 1000px) {

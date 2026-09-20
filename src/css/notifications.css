@@ -1,7 +1,14 @@
-/* Notifications — same editorial frame as the dashboard and friends pages.
-   Unread is carried by a small accent dot and a heavier message rather than a
-   tinted row: a full-width wash on every unread item turned the list into a
-   block of colour once a few piled up. */
+/* Notifications — the same editorial frame as the dashboard and friends
+   pages: a full-bleed header band with an oversized heading, then a toolbar
+   whose filter pills are the dashboard's sort pills, then the list.
+
+   Unread is carried by a small accent dot and a heavier message rather than
+   a tinted row: a full-width wash on every unread item turned the list into
+   a block of colour once a few piled up.
+
+   Same rule as dashboard.css: --pad lives on the children of each band, not
+   on the band itself, so every rule runs from the sidebar to the window
+   edge. */
 
 .notif {
   --pad: 44px;
@@ -42,16 +49,113 @@
   color: var(--heading);
 }
 
+.notif-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  padding-bottom: 9px;
+}
+
 .notif-clear {
   flex: none;
-  margin-left: auto;
-  margin-bottom: 9px;
-  padding: 9px 18px;
+  padding: 11px 22px;
+  border-color: transparent;
   border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--on-accent);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+
+.notif-clear:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--accent-hover);
+}
+
+.notif-error {
+  margin: 16px var(--pad) 0;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 0.875rem;
+}
+
+/* ---- toolbar ----------------------------------------------------------- */
+
+.notif-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 26px var(--pad) 0;
+}
+
+.notif-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 4px;
+}
+
+.notif-toolbar h2 {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--label);
+}
+
+.notif-tabs {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-left: auto;
+}
+
+.notif-tabs-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--border-strong);
+}
+
+.notif-tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.notif-tab:hover:not(:disabled) {
+  border-color: transparent;
+  color: var(--heading);
+}
+
+.notif-tab--on {
+  color: var(--accent);
+}
+
+.notif-tab small {
+  padding: 1px 5px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  font-size: 0.5625rem;
+  letter-spacing: 0.04em;
+}
+
+.notif-tab--on small {
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 /* ---- list -------------------------------------------------------------- */
@@ -60,7 +164,7 @@
   list-style: none;
   flex: 1;
   margin: 0;
-  padding: 0 var(--pad);
+  padding: 0;
 }
 
 /* the trailing space belongs to whichever element actually ends the page --
@@ -71,30 +175,48 @@
 
 .notif-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
-  padding: 15px 0;
+  padding: 16px 0;
   border-bottom: 1px solid var(--border);
 }
 
-.notif-dot {
+.notif-avatar {
+  display: grid;
+  place-items: center;
   flex: none;
-  width: 6px;
-  height: 6px;
+  width: 32px;
+  height: 32px;
+  margin-top: 1px;
   border-radius: 50%;
-  background: transparent;
+  background: var(--surface-sunken);
+  color: var(--muted);
+  font-size: 0.625rem;
+  font-weight: 700;
+  overflow: hidden;
 }
 
-.notif-item--unread .notif-dot {
-  background: var(--accent);
+.notif-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* an unread row is the one still asking for something, so its avatar is the
+   only one wearing the accent */
+.notif-item--unread .notif-avatar {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.notif-text {
+  flex: 1;
+  min-width: 0;
 }
 
 .notif-message {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
+  display: block;
+  width: 100%;
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -110,7 +232,7 @@
 .notif-message:hover:not(:disabled) {
   border-color: transparent;
   background: none;
-  color: var(--heading);
+  color: var(--accent);
 }
 
 .notif-item--unread .notif-message {
@@ -118,31 +240,95 @@
   color: var(--heading);
 }
 
-/* only shows on hover so the list stays quiet at rest */
-.notif-go {
-  flex: none;
-  opacity: 0;
-  font-size: 0.5625rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--accent);
-  transition: opacity 0.15s ease;
-}
-
-.notif-message:hover .notif-go,
-.notif-message:focus-visible .notif-go {
-  opacity: 1;
-}
-
-.notif-when {
-  flex: none;
+.notif-sub {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 0;
   font-size: 0.625rem;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
+}
+
+.notif-who {
+  color: var(--label);
+}
+
+/* which list it is about, when it is about one */
+.notif-list-name {
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--label);
+}
+
+.notif-respond {
+  display: flex;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.notif-respond button {
+  padding: 7px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.notif-accept {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.notif-accept:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--accent-hover);
+}
+
+/* ---- row actions ------------------------------------------------------- */
+
+.notif-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  margin-left: auto;
+}
+
+/* quiet at rest: the list is meant to be read, not administered, so the
+   read/unread toggle only comes forward on hover or keyboard focus */
+.notif-toggle {
+  padding: 5px 10px;
+  border-color: transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.notif-item:hover .notif-toggle,
+.notif-toggle:focus-visible {
+  opacity: 1;
+}
+
+.notif-toggle:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--surface-sunken);
+  color: var(--heading);
 }
 
 .notif-dismiss {
@@ -174,7 +360,7 @@
 }
 
 .notif-more {
-  padding: 22px var(--pad) 56px;
+  padding: 22px 0 56px;
 }
 
 .notif-more button {
@@ -188,40 +374,46 @@
 
 /* ---- responsive -------------------------------------------------------- */
 
+@media (max-width: 1240px) {
+  .notif {
+    --pad: 28px;
+  }
+}
+
 @media (max-width: 1000px) {
   .notif {
     --pad: 20px;
   }
 }
 
-@media (max-width: 560px) {
+@media (max-width: 620px) {
   .notif-head {
     flex-wrap: wrap;
   }
 
-  .notif-clear {
+  .notif-head-actions {
+    width: 100%;
     margin-left: 0;
   }
 
-  /* the timestamp drops under the message instead of competing with it for
-     what little width is left */
-  .notif-item {
+  .notif-toolbar {
     flex-wrap: wrap;
-    row-gap: 6px;
+    gap: 10px;
   }
 
-  .notif-message {
-    flex-basis: calc(100% - 56px);
+  .notif-tabs {
+    width: 100%;
+    margin-left: 0;
   }
 
-  .notif-when {
-    order: 3;
-    margin-left: 18px;
+  /* there is no hover on touch to reveal it, so the toggle has to stand on
+     its own -- it sits under the message with the dismiss button instead of
+     competing with them for what little width is left */
+  .notif-toggle {
+    opacity: 1;
   }
 
-  /* there is no hover on touch to reveal it, and inline it just steals width
-     from the message -- tapping the message still opens the list either way */
-  .notif-go {
-    display: none;
+  .notif-actions {
+    flex-direction: column;
   }
 }

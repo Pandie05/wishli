@@ -86,7 +86,6 @@ export default function AppShell() {
   const [wishlists, setWishlists] = useState<WishlistRow[]>([])
   const [dataVersion, setDataVersion] = useState(0)
 
-  const [menuOpen, setMenuOpen] = useState(false)
   const [showAddWish, setShowAddWish] = useState(false)
   const [presetUrl, setPresetUrl] = useState('')
   const [presetWishlistId, setPresetWishlistId] = useState('')
@@ -94,7 +93,6 @@ export default function AppShell() {
   // set when add-wish sent you off to make a list first, so you land back on
   // the wish you were adding once the list exists
   const [resumeAddWish, setResumeAddWish] = useState(false)
-  const userRef = useRef<HTMLDivElement | null>(null)
 
   // the sliding active pill: one absolutely-positioned element behind the
   // links, moved to whichever row is current
@@ -161,18 +159,6 @@ export default function AppShell() {
     return () => cancelAnimationFrame(frame)
   }, [active])
 
-  // click-outside for the log out menu hanging off the avatar
-  useEffect(() => {
-    if (!menuOpen) return
-
-    function onDown(event: MouseEvent) {
-      if (!userRef.current?.contains(event.target as Node)) setMenuOpen(false)
-    }
-
-    window.addEventListener('mousedown', onDown)
-    return () => window.removeEventListener('mousedown', onDown)
-  }, [menuOpen])
-
   function startWishlistFirst() {
     setShowAddWish(false)
     setResumeAddWish(true)
@@ -198,11 +184,6 @@ export default function AppShell() {
       setResumeAddWish(false)
       setShowAddWish(true)
     }
-  }
-
-  async function handleLogout() {
-    await supabase.auth.signOut()
-    navigate('/login', { replace: true })
   }
 
   const api: ShellApi = {
@@ -275,21 +256,11 @@ export default function AppShell() {
             </Link>
           </div>
 
-          <div className="shell-user" ref={userRef}>
-            {menuOpen && (
-              <div className="shell-user-menu">
-                <button type="button" onClick={handleLogout}>
-                  Log out
-                </button>
-              </div>
-            )}
-            <button
-              type="button"
-              className="shell-user-button"
-              onClick={() => setMenuOpen((open) => !open)}
-              aria-haspopup="menu"
-              aria-expanded={menuOpen}
-            >
+          {/* the account row is a second way into settings rather than a
+              menu of its own -- logging out lives on that page now, so the
+              avatar has exactly one thing it can do */}
+          <div className="shell-user">
+            <Link to="/settings" className="shell-user-button">
               <span className="shell-avatar">
                 {avatarUrl ? <img src={avatarUrl} alt="" /> : initialsFor(username)}
               </span>
@@ -297,7 +268,7 @@ export default function AppShell() {
                 <span className="shell-user-name">{username || 'Account'}</span>
                 <span className="shell-user-handle">@{username || '...'}</span>
               </span>
-            </button>
+            </Link>
           </div>
         </nav>
 
