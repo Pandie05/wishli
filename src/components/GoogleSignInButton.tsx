@@ -1,6 +1,11 @@
-import { supabase } from '../lib/supabase'
+import { setRememberMe, supabase } from '../lib/supabase'
 
-async function loginWithGoogle() {
+async function loginWithGoogle(remember: boolean) {
+  // The OAuth round trip leaves and comes back, so the choice has to be
+  // written down before we navigate away -- it is read again when Supabase
+  // stores the session on return.
+  setRememberMe(remember)
+
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
@@ -15,10 +20,15 @@ async function loginWithGoogle() {
   if (error) console.error('Error logging in:', error.message)
 }
 
+type Props = {
+  /** Login passes its checkbox through; Signup has none, so sessions persist. */
+  remember?: boolean
+}
+
 /** Same handler, same icon, same button -- shared by Login and Signup. */
-export default function GoogleSignInButton() {
+export default function GoogleSignInButton({ remember = true }: Props) {
   return (
-    <button onClick={loginWithGoogle} className="login-google">
+    <button onClick={() => loginWithGoogle(remember)} className="login-google">
       <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16">
         <path d="M0 0h16v16H0z" fill="none" />
         <g fill="none" fillRule="evenodd" clipRule="evenodd">
