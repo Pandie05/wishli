@@ -40,17 +40,22 @@ export default function SharedWishlist() {
   const [wishlist, setWishlist] = useState<SharedWishlistRow | null>(null)
   const [items, setItems] = useState<SharedItem[]>([])
   const [loading, setLoading] = useState(true)
+  // no shell here either, so the header doubles as the way back for anyone
+  // who already has an account
+  const [signedIn, setSignedIn] = useState(false)
 
   useEffect(() => {
     let cancelled = false
 
     async function load() {
-      const [{ data: list }, { data: rows }] = await Promise.all([
+      const [{ data: list }, { data: rows }, { data: session }] = await Promise.all([
         supabase.rpc('get_shared_wishlist', { token }).maybeSingle(),
         supabase.rpc('get_shared_wishlist_items', { token }),
+        supabase.auth.getSession(),
       ])
 
       if (cancelled) return
+      setSignedIn(!!session.session)
       setWishlist((list as SharedWishlistRow | null) ?? null)
       setItems((rows ?? []) as SharedItem[])
       setLoading(false)
@@ -84,8 +89,8 @@ export default function SharedWishlist() {
         <span className="shared-brand">
           wishli<span className="shared-brand-dot" />
         </span>
-        <Link to="/login" className="shared-cta">
-          Sign in to reserve something
+        <Link to={signedIn ? '/dashboard' : '/login'} className="shared-cta">
+          {signedIn ? 'Back to wishli' : 'Sign in to reserve something'}
         </Link>
       </header>
 

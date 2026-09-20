@@ -62,11 +62,14 @@ sql-queries/
   004_friends_and_sharing.sql
   005_claims_and_contributions.sql
   006_uploads_and_public_sharing.sql
+  007_friends_and_notifications_pages.sql
 ```
 
 Each file is safe to re-run (everything is `if not exists` / `or replace`), so if you're not sure what's already applied, running the whole sequence again won't break anything.
 
 This six-file set is a squashed rewrite of what used to be 22 incremental migrations — it creates the same final schema directly instead of replaying every fix-up along the way (a column added then dropped, a policy patched twice, etc.). **It has not been run against a real database yet** — I traced it carefully by hand from the original files, but couldn't execute it in this environment to confirm it runs clean end to end, so treat it as needing one verification pass (a throwaway Supabase project, or a careful read) before relying on it for a fresh setup. The original 22 files are kept in `sql-queries/archive/` for reference and are still what produced the current live database — nothing there needs to be re-run.
+
+`007` is the first file added on top of the squash: it fixes notification messages coming out blank when a username could not be resolved (in SQL, `null || ' sent you a friend request'` is `null`, not the rest of the sentence), repairs the rows already written that way, and adds the two read-side functions the friends and notifications pages use — `friend_overview()` and `notification_feed()`. It creates no tables and changes no policies.
 
 ### Edge functions
 

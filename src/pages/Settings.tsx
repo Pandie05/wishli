@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { describeError } from '../lib/errors'
 import { deleteStoredImages } from '../lib/storage'
 import { supabase } from '../lib/supabase'
@@ -14,6 +15,7 @@ type Message = { text: string; ok: boolean } | null
 
 export default function Settings() {
     const shell = useShell()
+    const navigate = useNavigate()
     const [loading, setLoading] = useState(true)
     const [userId, setUserId] = useState<string | null>(null)
     // the address on auth.users, which is the one that can log in. the copy in
@@ -112,6 +114,13 @@ export default function Settings() {
 
         setAvatarUrl(next)
         shell.refresh()
+    }
+
+    // the nav's account row opens this page rather than a menu, so signing
+    // out has to be reachable from here
+    async function handleLogout() {
+        await supabase.auth.signOut()
+        navigate('/login', { replace: true })
     }
 
     async function handlePublicProfile(next: boolean) {
@@ -364,8 +373,8 @@ export default function Settings() {
                         onChange={(e) => handlePublicProfile(e.target.checked)}
                     />
                     <span>
-                        Let anyone with your username see the wishlists you have already
-                        turned link-sharing on for.
+                        Let anyone with your username see the wishlists you have marked
+                        public.
                     </span>
                 </label>
 
@@ -377,7 +386,7 @@ export default function Settings() {
                                 <a href={`/u/${currentUsername}`} target="_blank" rel="noreferrer">
                                     /u/{currentUsername}
                                 </a>
-                                . Lists without a share link stay private.
+                                . Lists you have left private stay private.
                             </>
                         ) : (
                             <>Nobody can reach /u/{currentUsername} while this is off.</>
@@ -466,6 +475,19 @@ export default function Settings() {
                         You signed in with Google, so there is no password to change here.
                     </p>
                 )}
+            </section>
+
+            <section className="set-section">
+                <div className="set-section-head">
+                    <span className="set-section-num">07</span>
+                    <h2>Session</h2>
+                </div>
+                <button type="button" className="set-logout" onClick={handleLogout}>
+                    Log out
+                </button>
+                <p className="set-empty">
+                    Signs this device out. Your wishlists and friends are untouched.
+                </p>
             </section>
         </div>
     )
