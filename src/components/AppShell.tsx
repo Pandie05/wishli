@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Suspense, createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import AddWishModal from './AddWishModal'
@@ -294,8 +294,14 @@ export default function AppShell() {
           </div>
         </nav>
 
+        {/* the pages are lazy (see App.tsx), so the first visit to each one
+            suspends. this boundary sits below the nav on purpose -- catching
+            it up at the router instead would unmount the rail and blank the
+            whole window for that fetch. */}
         <main className="shell-main">
-          <PageTransition />
+          <Suspense fallback={null}>
+            <PageTransition />
+          </Suspense>
         </main>
       </div>
 

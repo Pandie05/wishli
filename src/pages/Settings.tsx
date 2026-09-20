@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { deleteStoredImages } from '../lib/storage'
 import { supabase } from '../lib/supabase'
+import { getThemeChoice, setThemeChoice } from '../lib/theme'
+import type { ThemeChoice } from '../lib/theme'
 import { USERNAME_TAKEN, usernameTaken, validateUsername } from '../lib/username'
 import { useShell } from '../components/AppShell'
 import ImageDrop from '../components/ImageDrop'
-import '../css/settings-temp.css'
+import '../css/settings.css'
 
 type Message = { text: string; ok: boolean } | null
 
@@ -21,6 +24,10 @@ export default function Settings() {
     // google accounts have no password to re-enter or replace
     const [hasPassword, setHasPassword] = useState(true)
 
+    // read straight from localStorage rather than the database: it should
+    // apply before the session resolves, and on this device only
+    const [theme, setTheme] = useState<ThemeChoice>(getThemeChoice)
+
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
     const [avatarError, setAvatarError] = useState<string | null>(null)
     const [savingAvatar, setSavingAvatar] = useState(false)
@@ -28,6 +35,10 @@ export default function Settings() {
     const [username, setUsername] = useState('')
     const [usernameMessage, setUsernameMessage] = useState<Message>(null)
     const [savingUsername, setSavingUsername] = useState(false)
+
+    const [publicProfile, setPublicProfile] = useState(false)
+    const [profileMessage, setProfileMessage] = useState<Message>(null)
+    const [savingProfile, setSavingProfile] = useState(false)
 
     const [email, setEmail] = useState('')
     const [emailMessage, setEmailMessage] = useState<Message>(null)
@@ -53,7 +64,7 @@ export default function Settings() {
 
             const { data: profile } = await supabase
                 .from('users')
-                .select('username, avatar_url')
+                .select('username, avatar_url, public_profile')
                 .eq('id', user.id)
                 .single()
 
@@ -65,6 +76,7 @@ export default function Settings() {
             setCurrentUsername(profile?.username ?? '')
             setUsername(profile?.username ?? '')
             setAvatarUrl(profile?.avatar_url ?? null)
+            setPublicProfile(profile?.public_profile ?? false)
             setHasPassword(user.identities?.some((i) => i.provider === 'email') ?? true)
             setLoading(false)
         }
@@ -93,8 +105,37 @@ export default function Settings() {
             return
         }
 
+        // only once the new one is safely saved -- the old file is the
+        // fallback if the update above had failed
+        if (avatarUrl && avatarUrl !== next) await deleteStoredImages([avatarUrl])
+
         setAvatarUrl(next)
         shell.refresh()
+    }
+
+    async function handlePublicProfile(next: boolean) {
+        if (!userId || savingProfile) return
+
+        setSavingProfile(true)
+        setProfileMessage(null)
+
+        const { error } = await supabase
+            .from('users')
+            .update({ public_profile: next })
+            .eq('id', userId)
+
+        setSavingProfile(false)
+
+        if (error) {
+            setProfileMessage({ text: error.message, ok: false })
+            return
+        }
+
+        setPublicProfile(next)
+        setProfileMessage({
+            text: next ? 'Your profile is live.' : 'Your profile is hidden again.',
+            ok: true,
+        })
     }
 
     async function handleUsername(event: FormEvent<HTMLFormElement>) {
@@ -232,10 +273,48 @@ export default function Settings() {
 
     return (
         <div className="set">
-            <h1>Settings</h1>
+            <header className="set-head">
+                <p className="set-eyebrow">{accountEmail || 'Your account'}</p>
+                <h1 className="set-title">Settings</h1>
+            </header>
 
             <section className="set-section">
-                <h2>Profile picture</h2>
+                <div className="set-section-head">
+                    <span className="set-section-num">01</span>
+                    <h2>Appearance</h2>
+                </div>
+                <div className="set-themes" role="group" aria-label="Colour theme">
+                    {(
+                        [
+                            ['system', 'System'],
+                            ['light', 'Light'],
+                            ['dark', 'Dark'],
+                        ] as const
+                    ).map(([value, label]) => (
+                        <button
+                            key={value}
+                            type="button"
+                            className={theme === value ? 'set-theme set-theme--on' : 'set-theme'}
+                            aria-pressed={theme === value}
+                            onClick={() => {
+                                setThemeChoice(value)
+                                setTheme(value)
+                            }}
+                        >
+                            {label}
+                        </button>
+                    ))}
+                </div>
+                <p className="set-empty">
+                    System follows whatever your device is set to, and changes with it.
+                </p>
+            </section>
+
+            <section className="set-section">
+                <div className="set-section-head">
+                    <span className="set-section-num">02</span>
+                    <h2>Profile picture</h2>
+                </div>
                 <ImageDrop
                     value={avatarUrl}
                     onChange={handleAvatarChange}
@@ -248,7 +327,10 @@ export default function Settings() {
             </section>
 
             <section className="set-section">
-                <h2>Username</h2>
+                <div className="set-section-head">
+                    <span className="set-section-num">03</span>
+                    <h2>Username</h2>
+                </div>
                 <form className="set-form" onSubmit={handleUsername}>
                     <div className="set-field">
                         <label htmlFor="set-username">Username</label>
@@ -269,7 +351,49 @@ export default function Settings() {
             </section>
 
             <section className="set-section">
-                <h2>Email</h2>
+                <div className="set-section-head">
+                    <span className="set-section-num">04</span>
+                    <h2>Public profile</h2>
+                </div>
+                <label className="set-toggle">
+                    <input
+                        type="checkbox"
+                        checked={publicProfile}
+                        disabled={savingProfile || loading || !currentUsername}
+                        onChange={(e) => handlePublicProfile(e.target.checked)}
+                    />
+                    <span>
+                        Let anyone with your username see the wishlists you have already
+                        turned link-sharing on for.
+                    </span>
+                </label>
+
+                {currentUsername ? (
+                    <p className="set-empty">
+                        {publicProfile ? (
+                            <>
+                                Live at{' '}
+                                <a href={`/u/${currentUsername}`} target="_blank" rel="noreferrer">
+                                    /u/{currentUsername}
+                                </a>
+                                . Lists without a share link stay private.
+                            </>
+                        ) : (
+                            <>Nobody can reach /u/{currentUsername} while this is off.</>
+                        )}
+                    </p>
+                ) : (
+                    <p className="set-empty">Pick a username first.</p>
+                )}
+
+                <Notice message={profileMessage} />
+            </section>
+
+            <section className="set-section">
+                <div className="set-section-head">
+                    <span className="set-section-num">05</span>
+                    <h2>Email</h2>
+                </div>
                 <form className="set-form" onSubmit={handleEmail}>
                     <div className="set-field">
                         <label htmlFor="set-email">Email</label>
@@ -290,7 +414,10 @@ export default function Settings() {
             </section>
 
             <section className="set-section">
-                <h2>Password</h2>
+                <div className="set-section-head">
+                    <span className="set-section-num">06</span>
+                    <h2>Password</h2>
+                </div>
                 {hasPassword ? (
                     <>
                         <form className="set-form" onSubmit={handlePassword}>

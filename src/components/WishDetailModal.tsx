@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import type { Contribution, WishItem } from '../lib/types'
+import type { Contribution, ItemClaim, WishItem } from '../lib/types'
 import Modal from './Modal'
 import MoneyInput from './MoneyInput'
 import { PRIORITY_LABELS } from './PriorityPicker'
@@ -13,6 +13,7 @@ type Props = {
   /** names for claimant / contributor ids, resolved by the page */
   names: Record<string, string>
   contributions: Contribution[]
+  claims: ItemClaim[]
   /** the owner of an aggregate-visibility list must not see who did what */
   hideDetail: boolean
   canEdit: boolean
@@ -40,6 +41,7 @@ export default function WishDetailModal({
   userId,
   names,
   contributions,
+  claims,
   hideDetail,
   canEdit,
   onClose,
@@ -49,13 +51,29 @@ export default function WishDetailModal({
 }: Props) {
   const [busy, setBusy] = useState(false)
   const [pledge, setPledge] = useState('')
+  const [take, setTake] = useState('1')
   const [error, setError] = useState<string | null>(null)
+
+  // the modal stays mounted between wishes, so without this the box would
+  // still hold whatever was typed against the last item -- and someone who
+  // already reserved 2 would see "1" and quietly drop to 1 by pressing Update
+  const myClaimQuantity = claims.find((c) => c.user_id === userId)?.quantity ?? 0
+  const openItemId = item?.item_id
+  useEffect(() => {
+    setTake(String(myClaimQuantity || 1))
+  }, [openItemId, myClaimQuantity])
 
   if (!item) return null
 
   const mine = contributions.find((c) => c.user_id === userId)
   const pledged = contributions.reduce((sum, c) => sum + c.amount, 0)
-  const claimedByMe = item.claimed_by === userId
+
+  const myClaim = claims.find((c) => c.user_id === userId)
+  const claimed = claims.reduce((sum, c) => sum + c.quantity, 0)
+  const left = item.quantity - claimed
+  // releasing your own claim frees it back up, so your ceiling includes it
+  const mostICanTake = left + (myClaim?.quantity ?? 0)
+  const multiple = item.quantity > 1
 
   async function run(work: () => Promise<{ error: { message: string } | null }>) {
     if (busy) return
@@ -70,13 +88,19 @@ export default function WishDetailModal({
     onChanged()
   }
 
-  function toggleClaim() {
-    if (!item) return
+  function reserve(quantity: number) {
+    if (!item || !userId || quantity < 1) return
     void run(async () =>
-      supabase.rpc('set_item_claimed', {
-        item_id: item.item_id,
-        claimed: !item.claimed_by,
-      }),
+      supabase
+        .from('item_claims')
+        .upsert({ item_id: item.item_id, user_id: userId, quantity }, { onConflict: 'item_id,user_id' }),
+    )
+  }
+
+  function release() {
+    if (!item || !userId) return
+    void run(async () =>
+      supabase.from('item_claims').delete().eq('item_id', item.item_id).eq('user_id', userId),
     )
   }
 
@@ -119,6 +143,32 @@ export default function WishDetailModal({
     )
   }
 
+  function statusChip() {
+    if (!item) return null
+    if (item.purchased) return <span className="wl-chip wl-chip--bought">Bought</span>
+    if (claimed >= item.quantity) {
+      const solo = claims.length === 1 ? claims[0] : null
+      return (
+        <span className="wl-chip wl-chip--reserved">
+          Reserved
+          {solo
+            ? solo.user_id === userId
+              ? ' by you'
+              : ` by ${solo.username || names[solo.user_id] || 'a friend'}`
+            : ''}
+        </span>
+      )
+    }
+    if (claimed > 0) {
+      return (
+        <span className="wl-chip wl-chip--reserved">
+          {claimed} of {item.quantity} reserved
+        </span>
+      )
+    }
+    return <span className="wl-chip">Available{multiple ? ` — ${item.quantity} wanted` : ''}</span>
+  }
+
   return (
     <Modal
       open={open}
@@ -154,6 +204,7 @@ export default function WishDetailModal({
           {item.price != null && (
             <span className="wish-detail-price">{money(item.price)}</span>
           )}
+          {multiple && <span className="wish-detail-tag">Wants {item.quantity}</span>}
           {item.priority != null && (
             <span className="wish-detail-tag">
               {item.priority} — {PRIORITY_LABELS[item.priority]}
@@ -179,25 +230,75 @@ export default function WishDetailModal({
           </p>
         ) : (
           <div className="wish-detail-actions">
-            <div className="wish-detail-status">
-              {item.purchased ? (
-                <span className="wl-chip wl-chip--bought">Bought</span>
-              ) : item.claimed_by ? (
-                <span className="wl-chip wl-chip--reserved">
-                  Reserved{claimedByMe ? ' by you' : ` by ${names[item.claimed_by] ?? 'a friend'}`}
-                </span>
-              ) : (
-                <span className="wl-chip">Available</span>
-              )}
-            </div>
+            <div className="wish-detail-status">{statusChip()}</div>
+
+            {multiple && claims.length > 0 && (
+              <ul className="wish-detail-contribs">
+                {claims.map((c) => (
+                  <li key={c.claim_id}>
+                    @{c.username || names[c.user_id] || 'someone'} — {c.quantity}
+                  </li>
+                ))}
+              </ul>
+            )}
 
             <div className="wish-detail-buttons">
-              {(!item.claimed_by || claimedByMe) && (
-                <button type="button" onClick={toggleClaim} disabled={busy}>
-                  {busy && <Spinner />}
-                  {item.claimed_by ? 'Release' : 'Reserve this'}
-                </button>
+              {multiple ? (
+                <>
+                  {mostICanTake > 0 && (
+                    <>
+                      {/* the max attribute does not stop anyone typing a
+                          bigger number, so it is clamped here as well -- and
+                          clamped in the field rather than silently at submit,
+                          so what you press Reserve on is what you asked for */}
+                      <input
+                        type="number"
+                        className="wish-detail-qty"
+                        min={1}
+                        max={mostICanTake}
+                        value={take}
+                        onChange={(e) => {
+                          const typed = Number(e.target.value)
+                          if (!e.target.value) {
+                            setTake('')
+                            return
+                          }
+                          setTake(String(Math.max(1, Math.min(typed, mostICanTake))))
+                        }}
+                        aria-label="How many to reserve"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => reserve(Math.min(Number(take) || 1, mostICanTake))}
+                        disabled={busy}
+                      >
+                        {busy && <Spinner />}
+                        {myClaim ? 'Update' : 'Reserve'}
+                      </button>
+                      <span className="wish-detail-left">
+                        {mostICanTake} left
+                      </span>
+                    </>
+                  )}
+                  {myClaim && (
+                    <button type="button" onClick={release} disabled={busy}>
+                      Release mine
+                    </button>
+                  )}
+                </>
+              ) : (
+                (left > 0 || myClaim) && (
+                  <button
+                    type="button"
+                    onClick={() => (myClaim ? release() : reserve(1))}
+                    disabled={busy}
+                  >
+                    {busy && <Spinner />}
+                    {myClaim ? 'Release' : 'Reserve this'}
+                  </button>
+                )
               )}
+
               <button type="button" onClick={togglePurchased} disabled={busy}>
                 {item.purchased ? 'Mark not bought' : 'Mark bought'}
               </button>
@@ -214,6 +315,23 @@ export default function WishDetailModal({
                   </>
                 )}
               </span>
+
+              {item.price != null && pledged > 0 && (
+                <div
+                  className="wish-progress"
+                  role="img"
+                  aria-label={`${money(pledged)} pledged of ${money(item.price)}`}
+                >
+                  <span
+                    className={
+                      pledged >= item.price
+                        ? 'wish-progress-fill wish-progress-fill--full'
+                        : 'wish-progress-fill'
+                    }
+                    style={{ width: `${Math.min(100, (pledged / item.price) * 100)}%` }}
+                  />
+                </div>
+              )}
 
               {contributions.length > 0 && (
                 <ul className="wish-detail-contribs">

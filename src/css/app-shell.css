@@ -138,7 +138,7 @@
   padding: 1px 5px;
   border-radius: var(--radius-pill);
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0;
@@ -188,7 +188,7 @@
   height: 34px;
   border-radius: 50%;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.02em;

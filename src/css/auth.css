@@ -16,6 +16,29 @@
 }
 
 .auth {
+  /* These pages are light-only by design: they carry their own palette below
+     and sit on artwork that only works against a pale ground. Most of that
+     palette is already independent of the app's tokens, but a few controls
+     (the submit button, the shared input chrome) read the global ones -- so
+     those are pinned to their light values here. Without this, dark mode
+     reaches in and restyles one button on an otherwise light page.
+     Remove this block if the auth pages ever get a dark treatment of their
+     own; nothing else depends on it. */
+  color-scheme: light;
+  --accent: #2f6be4;
+  --accent-hover: #2358c7;
+  --accent-soft: #eaf0fd;
+  --on-accent: #ffffff;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-sunken: #f4f5f8;
+  --border: #e6e8ef;
+  --border-strong: #d3d7e2;
+  --heading: #101a33;
+  --label: #434b60;
+  --muted: #8b90a3;
+  --placeholder: #a8adbd;
+
   /* Palette — shared with the credential form styles in login.css. */
   --login-accent: #7a86de;
   --login-accent-hover: #6975d2;
@@ -25,7 +48,7 @@
   --login-muted: #9b9ba7;
   --login-placeholder: #b6b6c1;
 
-  /* The frame keeps login-image.png's own 633x980 ratio so the photo is never
+  /* The frame keeps login-image.webp's own 633x980 ratio so the photo is never
      cropped and the cut-out overlay stays registered to it. Deriving the width
      from the height keeps the slide distance computable below. */
   --art-gap: 26px;
@@ -74,7 +97,7 @@
 
 /* ---------------------------------------------------------------- logo --- */
 
-/* logo.png is a 148px canvas with the mark inset ~30% on each side, so the box
+/* logo.webp is a 148px canvas with the mark inset ~30% on each side, so the box
    has to be much larger than the mark you actually see.
  *
  * It rides the same --slide and swaps sides with the artwork, travelling the
@@ -170,7 +193,7 @@
   object-fit: cover;
 }
 
-/* login-image-mask.png is the same art at 1:1 with the background cut away.
+/* login-image-mask.webp is the same art at 1:1 with the background cut away.
    It is 735x980 against the base's 633x980 and sits at x = -64, so the
    dandelions spill past both edges of the rounded frame.
      left  = -64 / 633 = -10.111%

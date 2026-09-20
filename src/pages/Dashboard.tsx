@@ -3,6 +3,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { daysUntil, formatTargetDate } from '../lib/dates'
 import { describeError } from '../lib/errors'
+import { deleteStoredImages } from '../lib/storage'
 import { supabase } from '../lib/supabase'
 import { initialsFor, useShell } from '../components/AppShell'
 import ConfirmModal from '../components/ConfirmModal'
@@ -14,10 +15,17 @@ import '../css/dashboard.css'
 type ItemRow = {
   item_id: string
   wishlist_id: string
+  name: string
   price: number | null
   image_url: string | null
-  claimed_by: string | null
+  quantity: number
   added_at: string
+}
+
+type ClaimRow = {
+  item_id: string
+  user_id: string
+  quantity: number
 }
 
 type ActivityRow = {
@@ -116,6 +124,7 @@ export default function Dashboard() {
   const [wishlists, setWishlists] = useState<WishlistRow[]>([])
   const [items, setItems] = useState<ItemRow[]>([])
   const [memberships, setMemberships] = useState<{ wishlist_id: string; user_id: string }[]>([])
+  const [claims, setClaims] = useState<ClaimRow[]>([])
   const [activity, setActivity] = useState<ActivityRow[]>([])
   const [senderNames, setSenderNames] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
@@ -149,6 +158,7 @@ export default function Dashboard() {
       { data: listRows, error: listError },
       { data: itemRows, error: itemError },
       { data: memberRows },
+      { data: claimRows },
       { data: notifRows },
     ] = await Promise.all([
         supabase.from('users').select('username').eq('id', user.id).single(),
@@ -159,9 +169,10 @@ export default function Dashboard() {
           .order('created_at', { ascending: false }),
         supabase
           .from('items')
-          .select('item_id, wishlist_id, price, image_url, claimed_by, added_at')
+          .select('item_id, wishlist_id, name, price, image_url, quantity, added_at')
           .order('added_at', { ascending: false }),
         supabase.from('wishlist_members').select('wishlist_id, user_id'),
+        supabase.from('item_claims').select('item_id, user_id, quantity'),
         supabase
           .from('notifications')
           .select('notification_id, sender_id, wishlist_id, message, is_read, created_at')
@@ -177,19 +188,24 @@ export default function Dashboard() {
     setWishlists((listRows ?? []) as WishlistRow[])
     setItems((itemRows ?? []) as ItemRow[])
     setMemberships(memberRows ?? [])
+    setClaims((claimRows ?? []) as ClaimRow[])
     setActivity((notifRows ?? []) as ActivityRow[])
     setLoading(false)
 
     // notifications only carry the sender's id; the username behind it comes
     // from the same security-definer function the friends page uses
     const ids = [...new Set((notifRows ?? []).map((n) => n.sender_id).filter(Boolean))] as string[]
-    const names = await Promise.all(
-      ids.map(async (id) => {
-        const { data: name } = await supabase.rpc('username_for_id', { id })
-        return [id, (name as string) ?? 'Someone'] as const
-      }),
+    if (ids.length === 0) return
+
+    const { data: nameRows } = await supabase.rpc('usernames_for_ids', { ids })
+    setSenderNames(
+      Object.fromEntries(
+        ((nameRows ?? []) as { id: string; username: string | null }[]).map((row) => [
+          row.id,
+          row.username ?? 'Someone',
+        ]),
+      ),
     )
-    setSenderNames(Object.fromEntries(names))
   }, [navigate])
 
   useEffect(() => {
@@ -211,6 +227,11 @@ export default function Dashboard() {
     const totals: Record<string, number> = {}
     const covers: Record<string, string> = {}
     const ownedIds = new Set(owned.map((w) => w.wishlist_id))
+    // "someone else has spoken for one of yours" -- your own claims on your
+    // own list do not count as a surprise waiting for you
+    const claimedByOthers = new Set(
+      claims.filter((c) => c.user_id !== userId).map((c) => c.item_id),
+    )
     let reserved = 0
     let ownedItemCount = 0
 
@@ -223,12 +244,12 @@ export default function Dashboard() {
 
       if (ownedIds.has(item.wishlist_id)) {
         ownedItemCount += 1
-        if (item.claimed_by && item.claimed_by !== userId) reserved += 1
+        if (claimedByOthers.has(item.item_id)) reserved += 1
       }
     }
 
     return { counts, totals, covers, reserved, ownedItemCount }
-  }, [items, owned, userId])
+  }, [items, owned, userId, claims])
 
   const memberCounts = useMemo(() => {
     const byList: Record<string, number> = {}
@@ -249,10 +270,31 @@ export default function Dashboard() {
     [owned, totals],
   )
 
+  /**
+   * Which wishes match the search, per list. Searching only list names meant
+   * you had to already know where you put something to find it -- the whole
+   * point of searching for "socks" is that you do not.
+   */
+  const itemMatches = useMemo(() => {
+    const needle = query.trim().toLowerCase()
+    if (!needle) return {}
+
+    const byList: Record<string, string[]> = {}
+    for (const item of items) {
+      if (!item.name?.toLowerCase().includes(needle)) continue
+      byList[item.wishlist_id] = [...(byList[item.wishlist_id] ?? []), item.name]
+    }
+    return byList
+  }, [items, query])
+
   const visible = useMemo(() => {
     const base = includeShared ? wishlists : owned
     const needle = query.trim().toLowerCase()
-    const filtered = needle ? base.filter((w) => w.name.toLowerCase().includes(needle)) : base
+    const filtered = needle
+      ? base.filter(
+          (w) => w.name.toLowerCase().includes(needle) || itemMatches[w.wishlist_id]?.length,
+        )
+      : base
 
     const sorted = [...filtered]
     if (sort === 'az') sorted.sort((a, b) => a.name.localeCompare(b.name))
@@ -261,10 +303,17 @@ export default function Dashboard() {
     else if (sort === 'upcoming')
       sorted.sort((a, b) => daysUntil(a.target_date) - daysUntil(b.target_date))
     return sorted
-  }, [wishlists, owned, includeShared, query, sort, totals])
+  }, [wishlists, owned, includeShared, query, sort, totals, itemMatches])
 
   async function deleteWishlist() {
     if (!pendingDelete || deleting) return
+
+    // collected before the delete: the items go with the wishlist (on delete
+    // cascade), so afterwards there is nothing left to read the paths from
+    const orphaned = [
+      pendingDelete.item_img,
+      ...items.filter((i) => i.wishlist_id === pendingDelete.wishlist_id).map((i) => i.image_url),
+    ]
 
     setDeleting(true)
     const { error: deleteError } = await supabase
@@ -277,6 +326,8 @@ export default function Dashboard() {
       setError(deleteError.message)
       return
     }
+
+    await deleteStoredImages(orphaned)
 
     setPendingDelete(null)
     setOpenMenu(null)
@@ -360,8 +411,8 @@ export default function Dashboard() {
             </svg>
             <input
               type="text"
-              placeholder="Search"
-              aria-label="Search wishlists"
+              placeholder="Search lists and wishes"
+              aria-label="Search wishlists and wishes"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -458,6 +509,10 @@ export default function Dashboard() {
               const spent = totals[w.wishlist_id] ?? 0
               const friends = memberCounts[w.wishlist_id] ?? 0
               const overBudget = w.budget != null && spent > w.budget
+              // only worth saying when the list itself is not the obvious hit
+              const matched = itemMatches[w.wishlist_id] ?? []
+              const showMatches =
+                matched.length > 0 && !w.name.toLowerCase().includes(query.trim().toLowerCase())
 
               return (
                 <li key={w.wishlist_id} className="dash-card">
@@ -516,6 +571,13 @@ export default function Dashboard() {
                       {w.budget != null && <small> / {money(w.budget)}</small>}
                     </span>
                   </div>
+
+                  {showMatches && (
+                    <p className="dash-card-match">
+                      <span>Matches</span> {matched.slice(0, 3).join(', ')}
+                      {matched.length > 3 && ` +${matched.length - 3} more`}
+                    </p>
+                  )}
 
                   {(w.occasion || w.target_date) && (
                     <p

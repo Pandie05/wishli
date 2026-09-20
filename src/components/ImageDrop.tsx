@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { deleteStoredImages } from '../lib/storage'
 import { supabase } from '../lib/supabase'
 
 /** Kept in step with the bucket's file_size_limit in 011. */
@@ -36,6 +37,10 @@ export default function ImageDrop({ value, onChange, userId, onError, hint }: Pr
   const inputRef = useRef<HTMLInputElement | null>(null)
   const [over, setOver] = useState(false)
   const [busy, setBusy] = useState(false)
+  // only ever holds urls this control uploaded itself, so replacing a picture
+  // twice before saving cleans up the discarded one without any risk of
+  // deleting the image the wish or list is still using
+  const uploadedHere = useRef<string[]>([])
 
   async function upload(file: File) {
     if (busy) return
@@ -73,6 +78,15 @@ export default function ImageDrop({ value, onChange, userId, onError, hint }: Pr
     }
 
     const { data } = supabase.storage.from(BUCKET).getPublicUrl(path)
+
+    // the picture being replaced is only removed when this control is the one
+    // that put it there and it was never saved
+    if (value && uploadedHere.current.includes(value)) {
+      await deleteStoredImages([value])
+      uploadedHere.current = uploadedHere.current.filter((url) => url !== value)
+    }
+
+    uploadedHere.current.push(data.publicUrl)
     onChange(data.publicUrl)
   }
 

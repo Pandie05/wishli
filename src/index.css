@@ -9,6 +9,11 @@
   --accent: #2f6be4;
   --accent-hover: #2358c7;
   --accent-soft: #eaf0fd;
+  /* text sitting on top of --accent. It is a token rather than a literal
+     because the accent has to lighten in dark mode to stay visible against
+     the page, and white on that lighter blue is too little contrast to read
+     comfortably -- there it flips to near-black instead. */
+  --on-accent: #ffffff;
   --danger: #d24a52;
   --danger-soft: #fbeaec;
   --success: #3f8f6b;
@@ -37,6 +42,53 @@
   --shadow-card: 0 1px 2px rgba(16, 26, 51, 0.04), 0 8px 24px -16px rgba(16, 26, 51, 0.12);
   --shadow-card-hover: 0 4px 10px rgba(16, 26, 51, 0.06), 0 16px 32px -16px rgba(16, 26, 51, 0.18);
   --shadow-pop: 0 12px 32px -12px rgba(16, 26, 51, 0.28), 0 2px 6px rgba(16, 26, 51, 0.08);
+}
+
+/* ---- dark ---------------------------------------------------------------
+ * Only one block, not the usual pair of a prefers-color-scheme query plus a
+ * manual override. src/lib/theme.ts resolves "system" to a concrete value in
+ * JS and always stamps data-theme on <html>, so the stylesheet never has to
+ * ask what the OS is set to -- and there is no way for the two to disagree.
+ * The inline script in index.html applies it before first paint.
+ *
+ * The palette is not the light one inverted. Surfaces stay close together and
+ * lift by a few points at a time (page -> surface -> raised) because the
+ * design leans on hairline rules rather than heavy contrast, and the accent
+ * moves lighter so it still reads against a dark ground.
+ * ------------------------------------------------------------------------- */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --accent: #6d9bf5;
+  --accent-hover: #8ab0f8;
+  --accent-soft: #1c2740;
+  --on-accent: #0d1220;
+  --danger: #ef7b83;
+  --danger-soft: #3a2027;
+  --success: #5fbf92;
+
+  /* light mode uses navy as a solid dark fill under white text (the nav pill,
+     the primary buttons). Kept dark here it would vanish into the page, so it
+     becomes a raised slate instead -- still dark enough for white to sit on */
+  --navy: #2b3445;
+  --navy-hover: #374357;
+
+  --surface: #161a22;
+  --surface-raised: #1b212b;
+  --surface-sunken: #12161d;
+  --border: #272e3a;
+  --border-strong: #3a4354;
+  --heading: #eef1f6;
+  --label: #b6becc;
+  --muted: #7f8899;
+  --placeholder: #667084;
+  --page-bg: #0f1218;
+
+  /* a soft grey shadow is invisible on a dark ground; depth has to come from
+     something darker than the surface it sits on */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -16px rgba(0, 0, 0, 0.7);
+  --shadow-card-hover: 0 4px 10px rgba(0, 0, 0, 0.45), 0 16px 32px -16px rgba(0, 0, 0, 0.8);
+  --shadow-pop: 0 12px 32px -12px rgba(0, 0, 0, 0.75), 0 2px 6px rgba(0, 0, 0, 0.5);
 }
 
 body {
@@ -85,7 +137,7 @@ button:disabled {
 button[type='submit'] {
   border-color: transparent;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 button[type='submit']:hover:not(:disabled) {

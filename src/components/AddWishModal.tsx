@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
+import { deleteStoredImages, discardUnsavedImage } from '../lib/storage'
 import { supabase } from '../lib/supabase'
 import ImageDrop from './ImageDrop'
 import MoneyInput from './MoneyInput'
@@ -53,6 +54,7 @@ export default function AddWishModal({
   const [productUrl, setProductUrl] = useState('')
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [price, setPrice] = useState('')
+  const [quantity, setQuantity] = useState('1')
   const [priority, setPriority] = useState<number | null>(null)
   const [notes, setNotes] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -73,6 +75,7 @@ export default function AddWishModal({
     fetchedRef.current = ''
     setImageUrl(item?.image_url ?? null)
     setPrice(item?.price != null ? String(item.price) : '')
+    setQuantity(String(item?.quantity ?? 1))
     setPriority(item?.priority ?? null)
     setNotes(item?.notes ?? '')
     setError(null)
@@ -151,6 +154,7 @@ export default function AddWishModal({
       product_url: productUrl.trim() || null,
       image_url: imageUrl,
       price: price ? Number(price) : null,
+      quantity: Math.max(1, Math.round(Number(quantity) || 1)),
       priority,
       notes: notes.trim() || null,
     }
@@ -170,7 +174,22 @@ export default function AddWishModal({
       return
     }
 
+    // the wish no longer points at the picture it was saved with
+    if (item?.image_url && item.image_url !== imageUrl) {
+      await deleteStoredImages([item.image_url])
+    }
+
     onSaved(wishlistId)
+    onClose()
+  }
+
+  /**
+   * Leaving without saving. Anything uploaded during this visit has nothing
+   * pointing at it, so it goes -- but only if it is genuinely new, otherwise
+   * cancelling an edit would delete the picture the wish still uses.
+   */
+  async function handleClose() {
+    await discardUnsavedImage(imageUrl, item?.image_url ?? null)
     onClose()
   }
 
@@ -214,12 +233,12 @@ export default function AddWishModal({
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       eyebrow={item ? 'Edit wish' : 'New wish'}
       title={item ? 'Edit a wish' : 'Add a wish'}
       footer={
         <>
-          <button type="button" onClick={onClose}>
+          <button type="button" onClick={handleClose}>
             Cancel
           </button>
           <button type="submit" form={FORM_ID} disabled={submitting}>
@@ -313,6 +332,20 @@ export default function AddWishModal({
             </select>
           </label>
         </div>
+
+        <label className="field">
+          <span className="field-label">How many</span>
+          <input
+            type="number"
+            min={1}
+            step={1}
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
+          />
+          <p className="field-note">
+            More than one lets several people each reserve part of it.
+          </p>
+        </label>
 
         <div className="field">
           <span className="field-label">Priority</span>

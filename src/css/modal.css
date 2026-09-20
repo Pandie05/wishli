@@ -183,7 +183,7 @@
 .modal-actions .modal-primary {
   border-color: transparent;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .modal-actions button[type='submit']:hover:not(:disabled),
@@ -391,7 +391,7 @@
 .segment[aria-pressed='true'] {
   border-color: transparent;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .segment:disabled {
@@ -424,7 +424,7 @@
 .rating-step[aria-pressed='true'] {
   border-color: transparent;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .rating-caption {
@@ -481,7 +481,7 @@
   height: 22px;
   border-radius: 50%;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   font-size: 0.5rem;
   font-weight: 700;
 }
@@ -578,6 +578,47 @@
   max-width: 42ch;
   font-size: 0.8125rem;
   line-height: 1.5;
+  color: var(--muted);
+}
+
+/* ---- share modal ------------------------------------------------------- */
+
+.share {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+/* stays white in dark mode on purpose: the code is generated as dark modules
+   on a light ground, and inverting it stops a lot of scanners reading it */
+.share-qr {
+  width: 200px;
+  height: 200px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: #fff;
+}
+
+.share-qr--empty {
+  background: var(--surface-sunken);
+}
+
+.share-url {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  font-size: 0.8125rem;
+  color: var(--label);
+  text-align: center;
+}
+
+.share-save {
+  font-size: 0.75rem;
   color: var(--muted);
 }
 

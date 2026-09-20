@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
+import { deleteStoredImages, discardUnsavedImage } from '../lib/storage'
 import { supabase } from '../lib/supabase'
 import FriendPicker from './FriendPicker'
 import type { Friend } from './FriendPicker'
@@ -130,20 +131,32 @@ export default function WishlistFormModal({ open, userId, wishlist, onClose, onS
       }
     }
 
+    // the list no longer points at the cover it was saved with
+    if (wishlist?.item_img && wishlist.item_img !== cover) {
+      await deleteStoredImages([wishlist.item_img])
+    }
+
     setSubmitting(false)
     onSaved(saved)
+    onClose()
+  }
+
+  /** Leaving without saving: a cover uploaded during this visit is orphaned
+   *  the moment the modal closes, but one the list already had is not. */
+  async function handleClose() {
+    await discardUnsavedImage(cover, wishlist?.item_img ?? null)
     onClose()
   }
 
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       eyebrow={editing ? 'Edit wishlist' : 'New wishlist'}
       title={editing ? 'Edit wishlist' : 'Create a wishlist'}
       footer={
         <>
-          <button type="button" onClick={onClose}>
+          <button type="button" onClick={handleClose}>
             Cancel
           </button>
           <button type="submit" form={FORM_ID} disabled={submitting}>

@@ -31,3 +31,26 @@ export function formatTargetDate(dateStr: string): string {
     day: 'numeric',
   })
 }
+
+/**
+ * "just now" / "12m" / "5h" / "3d" / "Dec 12" for a full timestamp. Unlike
+ * the functions above this takes an instant, not a calendar day, so it reads
+ * the time of day too -- a notification from an hour ago and one from this
+ * morning are both "today" but should not say the same thing.
+ */
+export function timeAgo(iso: string): string {
+  const seconds = Math.round((Date.now() - new Date(iso).getTime()) / 1000)
+
+  if (seconds < 60) return 'just now'
+
+  const minutes = Math.round(seconds / 60)
+  if (minutes < 60) return `${minutes}m`
+
+  const hours = Math.round(minutes / 60)
+  if (hours < 24) return `${hours}h`
+
+  const days = Math.round(hours / 24)
+  if (days < 7) return `${days}d`
+
+  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}

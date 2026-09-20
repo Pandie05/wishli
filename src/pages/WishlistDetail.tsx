@@ -3,13 +3,15 @@ import type { CSSProperties } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { daysUntil, formatTargetDate } from '../lib/dates'
 import { describeError } from '../lib/errors'
+import { deleteStoredImages } from '../lib/storage'
 import { supabase } from '../lib/supabase'
 import { WISH_COLUMNS } from '../lib/types'
-import type { Contribution, Friend, WishItem, WishlistMember } from '../lib/types'
+import type { Contribution, ItemClaim, Friend, WishItem, WishlistMember } from '../lib/types'
 import AddWishModal from '../components/AddWishModal'
 import { useShell } from '../components/AppShell'
 import ConfirmModal from '../components/ConfirmModal'
 import ManagePeopleModal from '../components/ManagePeopleModal'
+import ShareModal from '../components/ShareModal'
 import WishDetailModal from '../components/WishDetailModal'
 import WishlistFormModal from '../components/WishlistFormModal'
 import type { WishlistRow } from '../components/WishlistFormModal'
@@ -65,6 +67,7 @@ export default function WishlistDetail() {
   const [members, setMembers] = useState<WishlistMember[]>([])
   const [friends, setFriends] = useState<Friend[]>([])
   const [contributions, setContributions] = useState<Contribution[]>([])
+  const [claims, setClaims] = useState<ItemClaim[]>([])
   const [names, setNames] = useState<Record<string, string>>({})
   const [myRole, setMyRole] = useState<'viewer' | 'editor' | null>(null)
   const [loading, setLoading] = useState(true)
@@ -80,7 +83,7 @@ export default function WishlistDetail() {
   const [editingList, setEditingList] = useState(false)
   const [showPeople, setShowPeople] = useState(false)
   const [sharing, setSharing] = useState(false)
-  const [shareCopied, setShareCopied] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
 
   const load = useCallback(async () => {
     const { data: auth } = await supabase.auth.getSession()
@@ -98,6 +101,7 @@ export default function WishlistDetail() {
       { data: itemRows, error: itemError },
       { data: memberRows },
       { data: contribRows },
+      { data: claimRows },
       { data: requests },
     ] = await Promise.all([
       supabase
@@ -112,7 +116,17 @@ export default function WishlistDetail() {
         .from('wishlist_members')
         .select('member_id, user_id, role')
         .eq('wishlist_id', wishlistId),
-      supabase.from('item_contributions').select('contribution_id, item_id, user_id, amount'),
+      // the !inner join is what scopes these to this list. without it rls
+      // still allows the read, so it returned every pledge and every claim
+      // on every list this account can see, to render one of them
+      supabase
+        .from('item_contributions')
+        .select('contribution_id, item_id, user_id, amount, items!inner(wishlist_id)')
+        .eq('items.wishlist_id', wishlistId),
+      supabase
+        .from('item_claims')
+        .select('claim_id, item_id, user_id, quantity, items!inner(wishlist_id)')
+        .eq('items.wishlist_id', wishlistId),
       supabase
         .from('friend_requests')
         .select('sender_id, receiver_id, status')
@@ -139,6 +153,15 @@ export default function WishlistDetail() {
         username: '',
       })),
     )
+    setClaims(
+      (claimRows ?? []).map((c) => ({
+        claim_id: c.claim_id,
+        item_id: c.item_id,
+        user_id: c.user_id,
+        quantity: Number(c.quantity),
+        username: '',
+      })),
+    )
     setMyRole(
       ((memberRows ?? []).find((m) => m.user_id === user.id)?.role as 'viewer' | 'editor') ?? null,
     )
@@ -159,22 +182,26 @@ export default function WishlistDetail() {
     const ids = new Set<string>(friendIds)
     for (const m of memberRows ?? []) ids.add(m.user_id)
     for (const c of contribRows ?? []) ids.add(c.user_id)
-    for (const i of itemRows ?? []) if (i.claimed_by) ids.add(i.claimed_by)
+    for (const c of claimRows ?? []) ids.add(c.user_id)
 
-    // rls on public.users only exposes your own row, so each name comes from
-    // the security-definer function -- they at least all go out together
+    // rls on public.users only exposes your own row, so names come from a
+    // security-definer function -- usernames_for_ids (018) answers for the
+    // whole set at once rather than one request per person
+    const { data: nameRows } = ids.size
+      ? await supabase.rpc('usernames_for_ids', { ids: [...ids] })
+      : { data: [] }
+
     const resolved = Object.fromEntries(
-      await Promise.all(
-        [...ids].map(async (id) => {
-          const { data: name } = await supabase.rpc('username_for_id', { id })
-          return [id, (name as string) ?? 'someone'] as const
-        }),
-      ),
+      ((nameRows ?? []) as { id: string; username: string | null }[]).map((row) => [
+        row.id,
+        row.username ?? 'someone',
+      ]),
     ) as Record<string, string>
 
     setNames(resolved)
     setMembers((prev) => prev.map((m) => ({ ...m, username: resolved[m.user_id] ?? '' })))
     setContributions((prev) => prev.map((c) => ({ ...c, username: resolved[c.user_id] ?? '' })))
+    setClaims((prev) => prev.map((c) => ({ ...c, username: resolved[c.user_id] ?? '' })))
     setFriends(
       friendIds
         .filter((id) => !memberIds.has(id))
@@ -200,11 +227,25 @@ export default function WishlistDetail() {
   // reserved or bought what, only how much of the list is spoken for
   const aggregate = isOwner && wishlist?.purchase_visibility === 'aggregate'
 
+  /** item_id -> how many of it are already spoken for */
+  const claimedByItem = useMemo(() => {
+    const totals: Record<string, number> = {}
+    for (const c of claims) totals[c.item_id] = (totals[c.item_id] ?? 0) + c.quantity
+    return totals
+  }, [claims])
+
+  // a wish with 3 wanted and 1 reserved is still available -- "reserved"
+  // means every one of them is accounted for
+  const isSpokenFor = useCallback(
+    (item: WishItem) => (claimedByItem[item.item_id] ?? 0) >= item.quantity,
+    [claimedByItem],
+  )
+
   const counts = useMemo(() => {
     const bought = items.filter((i) => i.purchased).length
-    const reserved = items.filter((i) => i.claimed_by && !i.purchased).length
+    const reserved = items.filter((i) => !i.purchased && isSpokenFor(i)).length
     return { all: items.length, bought, reserved, available: items.length - bought - reserved }
-  }, [items])
+  }, [items, isSpokenFor])
 
   const spent = useMemo(() => items.reduce((sum, i) => sum + (i.price ?? 0), 0), [items])
 
@@ -214,30 +255,33 @@ export default function WishlistDetail() {
       : items.filter((item) => {
           if (tab === 'all') return true
           if (tab === 'bought') return item.purchased
-          if (tab === 'reserved') return !!item.claimed_by && !item.purchased
-          return !item.claimed_by && !item.purchased
+          if (tab === 'reserved') return !item.purchased && isSpokenFor(item)
+          return !item.purchased && !isSpokenFor(item)
         })
     return sortWishes(filtered, sort)
-  }, [items, tab, sort, aggregate])
+  }, [items, tab, sort, aggregate, isSpokenFor])
 
   const contributionsFor = useCallback(
     (itemId: string) => contributions.filter((c) => c.item_id === itemId),
     [contributions],
   )
 
+  const claimsFor = useCallback(
+    (itemId: string) => claims.filter((c) => c.item_id === itemId),
+    [claims],
+  )
+
   /**
-   * First click with no token yet generates one; once it exists, every click
-   * just copies the link again. A token is never cleared here -- turning
-   * sharing back off would need its own explicit control, this button only
-   * ever turns it on or re-shares the same link.
+   * First open with no token yet generates one; after that the same link is
+   * shown every time. A token is never cleared here -- turning sharing back
+   * off would need its own explicit control.
    */
   async function handleShare() {
     if (sharing || !wishlist) return
 
-    let token = wishlist.share_token
-    if (!token) {
+    if (!wishlist.share_token) {
       setSharing(true)
-      token = crypto.randomUUID()
+      const token = crypto.randomUUID()
       const { error: failure } = await supabase
         .from('wishlists')
         .update({ share_token: token })
@@ -252,9 +296,7 @@ export default function WishlistDetail() {
       setWishlist((prev) => (prev ? { ...prev, share_token: token } : prev))
     }
 
-    await navigator.clipboard.writeText(`${window.location.origin}/share/${token}`)
-    setShareCopied(true)
-    setTimeout(() => setShareCopied(false), 2000)
+    setShareOpen(true)
   }
 
   async function deleteWish() {
@@ -270,6 +312,9 @@ export default function WishlistDetail() {
       setError(failure.message)
       return
     }
+
+    // the row is gone, so nothing points at its picture any more
+    await deleteStoredImages([deletingWish.image_url])
 
     setDeletingWish(null)
     setViewing(null)
@@ -346,7 +391,7 @@ export default function WishlistDetail() {
                   disabled={sharing}
                   title="Anyone with the link can view this wishlist, read-only — they still need to sign in to reserve anything."
                 >
-                  {sharing ? 'Creating link...' : shareCopied ? 'Copied!' : 'Share link'}
+                  {sharing ? 'Creating link...' : 'Share link'}
                 </button>
               )}
 
@@ -455,12 +500,18 @@ export default function WishlistDetail() {
                   className={
                     item.purchased
                       ? 'wl-chip wl-chip--bought'
-                      : item.claimed_by
+                      : isSpokenFor(item)
                         ? 'wl-chip wl-chip--reserved'
                         : 'wl-chip'
                   }
                 >
-                  {item.purchased ? 'Bought' : item.claimed_by ? 'Reserved' : 'Available'}
+                  {item.purchased
+                    ? 'Bought'
+                    : isSpokenFor(item)
+                      ? 'Reserved'
+                      : item.quantity > 1
+                        ? `${item.quantity - (claimedByItem[item.item_id] ?? 0)} of ${item.quantity} left`
+                        : 'Available'}
                 </span>
               )}
 
@@ -512,6 +563,7 @@ export default function WishlistDetail() {
         userId={userId}
         names={names}
         contributions={viewing ? contributionsFor(viewing.item_id) : []}
+        claims={viewing ? claimsFor(viewing.item_id) : []}
         hideDetail={aggregate}
         canEdit={canEdit}
         onClose={() => setViewing(null)}
@@ -552,6 +604,17 @@ export default function WishlistDetail() {
           setWishlist(row)
           shell.refresh()
         }}
+      />
+
+      <ShareModal
+        open={shareOpen}
+        title={wishlist?.name ?? 'this wishlist'}
+        url={
+          wishlist?.share_token
+            ? `${window.location.origin}/share/${wishlist.share_token}`
+            : null
+        }
+        onClose={() => setShareOpen(false)}
       />
 
       <ManagePeopleModal
