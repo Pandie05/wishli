@@ -312,9 +312,12 @@ begin
   -- no claim of your own yet: record one for whatever is still unspoken for,
   -- so buying without reserving first still attributes the purchase
   if set_item_purchased.purchased and v_mine = 0 and v_claimed < v_quantity then
+    -- no column list on the conflict target on purpose: it cannot take a
+    -- table qualifier, so naming item_id there is ambiguous against this
+    -- function's own parameter of the same name (see 020)
     insert into public.item_claims (item_id, user_id, quantity)
     values (set_item_purchased.item_id, auth.uid(), v_quantity - v_claimed)
-    on conflict (item_id, user_id) do nothing;
+    on conflict do nothing;
   end if;
 
   if set_item_purchased.purchased and not v_was_purchased and v_owner_id <> auth.uid() then

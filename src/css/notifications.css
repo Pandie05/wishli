@@ -60,7 +60,13 @@
   list-style: none;
   flex: 1;
   margin: 0;
-  padding: 0 var(--pad) 56px;
+  padding: 0 var(--pad);
+}
+
+/* the trailing space belongs to whichever element actually ends the page --
+   with a "show older" button below, the list must not add its own */
+.notif-list:last-child {
+  padding-bottom: 56px;
 }
 
 .notif-item {
@@ -165,6 +171,19 @@
   border-bottom: 1px solid var(--border);
   font-size: 0.8125rem;
   color: var(--muted);
+}
+
+.notif-more {
+  padding: 22px var(--pad) 56px;
+}
+
+.notif-more button {
+  padding: 9px 20px;
+  border-radius: var(--radius-sm);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 /* ---- responsive -------------------------------------------------------- */

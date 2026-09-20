@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { deleteStoredImages } from '../lib/storage'
 import { supabase } from '../lib/supabase'
+import { getThemeChoice, setThemeChoice } from '../lib/theme'
+import type { ThemeChoice } from '../lib/theme'
 import { USERNAME_TAKEN, usernameTaken, validateUsername } from '../lib/username'
 import { useShell } from '../components/AppShell'
 import ImageDrop from '../components/ImageDrop'
@@ -20,6 +23,10 @@ export default function Settings() {
     const [currentUsername, setCurrentUsername] = useState('')
     // google accounts have no password to re-enter or replace
     const [hasPassword, setHasPassword] = useState(true)
+
+    // read straight from localStorage rather than the database: it should
+    // apply before the session resolves, and on this device only
+    const [theme, setTheme] = useState<ThemeChoice>(getThemeChoice)
 
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
     const [avatarError, setAvatarError] = useState<string | null>(null)
@@ -97,6 +104,10 @@ export default function Settings() {
             setAvatarError(error.message)
             return
         }
+
+        // only once the new one is safely saved -- the old file is the
+        // fallback if the update above had failed
+        if (avatarUrl && avatarUrl !== next) await deleteStoredImages([avatarUrl])
 
         setAvatarUrl(next)
         shell.refresh()
@@ -270,6 +281,38 @@ export default function Settings() {
             <section className="set-section">
                 <div className="set-section-head">
                     <span className="set-section-num">01</span>
+                    <h2>Appearance</h2>
+                </div>
+                <div className="set-themes" role="group" aria-label="Colour theme">
+                    {(
+                        [
+                            ['system', 'System'],
+                            ['light', 'Light'],
+                            ['dark', 'Dark'],
+                        ] as const
+                    ).map(([value, label]) => (
+                        <button
+                            key={value}
+                            type="button"
+                            className={theme === value ? 'set-theme set-theme--on' : 'set-theme'}
+                            aria-pressed={theme === value}
+                            onClick={() => {
+                                setThemeChoice(value)
+                                setTheme(value)
+                            }}
+                        >
+                            {label}
+                        </button>
+                    ))}
+                </div>
+                <p className="set-empty">
+                    System follows whatever your device is set to, and changes with it.
+                </p>
+            </section>
+
+            <section className="set-section">
+                <div className="set-section-head">
+                    <span className="set-section-num">02</span>
                     <h2>Profile picture</h2>
                 </div>
                 <ImageDrop
@@ -285,7 +328,7 @@ export default function Settings() {
 
             <section className="set-section">
                 <div className="set-section-head">
-                    <span className="set-section-num">02</span>
+                    <span className="set-section-num">03</span>
                     <h2>Username</h2>
                 </div>
                 <form className="set-form" onSubmit={handleUsername}>
@@ -309,7 +352,7 @@ export default function Settings() {
 
             <section className="set-section">
                 <div className="set-section-head">
-                    <span className="set-section-num">03</span>
+                    <span className="set-section-num">04</span>
                     <h2>Public profile</h2>
                 </div>
                 <label className="set-toggle">
@@ -348,7 +391,7 @@ export default function Settings() {
 
             <section className="set-section">
                 <div className="set-section-head">
-                    <span className="set-section-num">04</span>
+                    <span className="set-section-num">05</span>
                     <h2>Email</h2>
                 </div>
                 <form className="set-form" onSubmit={handleEmail}>
@@ -372,7 +415,7 @@ export default function Settings() {
 
             <section className="set-section">
                 <div className="set-section-head">
-                    <span className="set-section-num">05</span>
+                    <span className="set-section-num">06</span>
                     <h2>Password</h2>
                 </div>
                 {hasPassword ? (

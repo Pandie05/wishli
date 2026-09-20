@@ -118,7 +118,7 @@
   border-color: transparent;
   border-radius: var(--radius-sm);
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -133,6 +133,33 @@
 /* the ImageDrop in the avatar section is otherwise as wide as the window */
 .set-section .drop {
   max-width: var(--measure);
+}
+
+/* ---- appearance -------------------------------------------------------- */
+
+.set-themes {
+  display: flex;
+  gap: 8px;
+}
+
+.set-theme {
+  padding: 9px 20px;
+  border-radius: var(--radius-sm);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.set-theme--on {
+  border-color: transparent;
+  background: var(--navy);
+  color: #fff;
+}
+
+.set-theme--on:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--navy-hover);
 }
 
 /* ---- public profile toggle --------------------------------------------- */

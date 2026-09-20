@@ -74,6 +74,8 @@ sql-queries/
   016_public_profiles.sql
   017_either_party_can_remove_a_friend.sql
   018_indexes_and_batched_usernames.sql
+  019_friendship_and_membership_integrity.sql
+  020_fix_ambiguous_item_id_on_purchase.sql
 ```
 
 Each file is safe to re-run (everything is `if not exists` / `or replace`), so if you're not sure what's already applied, running the whole sequence again won't break anything.
@@ -99,12 +101,12 @@ npx supabase functions deploy send-date-reminders
 - **Auth** — email/password and Google sign-in
 - **Dashboard** — your wishlists and the ones shared with you, with budget-vs-spent tracking and sorting (including by soonest upcoming date). Search matches wish names as well as list names, so you can find something without remembering which list you put it on
 - **Wishlist detail** — add/edit/delete items, mark purchased, occasion + target date, and a "how many" count so several people can each reserve part of one wish
-- **Friends** — send/accept/decline friend requests, resend after a decline, and remove a friend from either side. Removing someone does not revoke wishlists you already shared with them; take those back on the list itself
+- **Friends** — send/accept/decline friend requests, resend after a decline, and remove a friend from either side. One friendship per pair whichever way round it was asked, enforced in the database rather than only in the form. Removing someone does not revoke wishlists you already shared with them; take those back on the list itself
 - **Sharing** — share a wishlist with a friend; they can view and mark items purchased, but can't edit the list unless made an editor. The owner can choose whether they see exactly what's been claimed or just a count, so a shared wishlist can still be a surprise
 - **Share links** — a read-only public link per wishlist, shown with a QR code so a room can open it without typing anything. No account needed to look, still needed to reserve
 - **Public profile** — opt-in page at `/u/<username>` listing only the wishlists you have already turned link-sharing on for
 - **Notifications** — friend requests, accepted requests, being added to a wishlist, items getting claimed, and upcoming target dates, each with a relative timestamp, plus mark-all-read
-- **Settings** — profile picture, username, email, password, and the public-profile switch
+- **Settings** — appearance (system/light/dark), profile picture, username, email, password, and the public-profile switch
 - **Installable** — ships a web app manifest and a service worker, so it can be added to a phone home screen and opens without browser chrome
 
 ## Notes
@@ -115,5 +117,7 @@ npx supabase functions deploy send-date-reminders
 - The PWA icons come from `public/app-icon.svg`; `public/pwa-192.png`, `pwa-512.png` and `apple-touch-icon.png` are generated from it, so regenerate all three if that source changes.
 - The login art in `src/images/` is WebP, not PNG, and that is worth keeping. As PNGs those two files were 2.0 MB between them — four times the size of the whole JavaScript bundle, on the first page every visitor loads. Re-exported at identical dimensions they come to 316 KB with no visible difference. If you ever replace them, convert before committing.
 - Routes are code-split (`React.lazy` in `App.tsx`), so a logged-out visitor — including someone opening a share link who may never sign up — no longer downloads the whole signed-in app. `Auth` is deliberately left eager because it is the cold start for anyone without a session. The `qrcode` encoder is imported inside the share modal for the same reason. There are two `<Suspense>` boundaries: one at the router, and one inside `AppShell` below the nav, so moving between signed-in pages never blanks the rail.
+- Dark mode lives in one `:root[data-theme='dark']` block in `index.css`, not the usual pair of a `prefers-color-scheme` query plus a manual override. `src/lib/theme.ts` resolves the three-way choice (system/light/dark) in JS and always stamps a concrete value on `<html>`, so the stylesheet never has to ask what the OS is set to and the two cannot disagree. A small inline script in `index.html` applies it before first paint, which is what stops a white flash; it duplicates a few lines of that logic on purpose, because a module would load too late to help. Text on the accent colour uses `--on-accent` rather than a literal white — the accent lightens in dark mode and white on it is too little contrast. The auth pages pin the shared tokens to their light values in `auth.css`: they carry their own palette and artwork and are deliberately light-only.
 - Every page now has a real design pass and its own stylesheet; the `*-temp.css` placeholders are gone. They all share one editorial language — full-bleed hairline bands, an oversized page heading, and small letterspaced uppercase labels — so a new page should start by copying that frame rather than inventing another one. There is no global `box-sizing` reset; it is set per rule where needed.
+- Uploaded pictures are cleaned up by `src/lib/storage.ts`, which every delete/replace path calls. It only ever removes URLs that point into our own bucket, so a product image scraped from a shop is left alone, and the storage policy in `011` means you can only delete inside your own folder — an owner clearing out a wishlist cannot remove a picture an editor uploaded. Cleanup is best-effort and never blocks the save or delete the person actually asked for.
 - A render error anywhere lands on the crash screen in `src/components/ErrorBoundary.tsx` instead of a blank page. Its buttons navigate with a full page load on purpose — the state that caused the crash is still in memory, so re-rendering into it would usually just crash again.

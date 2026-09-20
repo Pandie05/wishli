@@ -3,6 +3,7 @@ import type { CSSProperties } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { daysUntil, formatTargetDate } from '../lib/dates'
 import { describeError } from '../lib/errors'
+import { deleteStoredImages } from '../lib/storage'
 import { supabase } from '../lib/supabase'
 import { WISH_COLUMNS } from '../lib/types'
 import type { Contribution, ItemClaim, Friend, WishItem, WishlistMember } from '../lib/types'
@@ -311,6 +312,9 @@ export default function WishlistDetail() {
       setError(failure.message)
       return
     }
+
+    // the row is gone, so nothing points at its picture any more
+    await deleteStoredImages([deletingWish.image_url])
 
     setDeletingWish(null)
     setViewing(null)

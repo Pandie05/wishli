@@ -3,6 +3,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { daysUntil, formatTargetDate } from '../lib/dates'
 import { describeError } from '../lib/errors'
+import { deleteStoredImages } from '../lib/storage'
 import { supabase } from '../lib/supabase'
 import { initialsFor, useShell } from '../components/AppShell'
 import ConfirmModal from '../components/ConfirmModal'
@@ -307,6 +308,13 @@ export default function Dashboard() {
   async function deleteWishlist() {
     if (!pendingDelete || deleting) return
 
+    // collected before the delete: the items go with the wishlist (on delete
+    // cascade), so afterwards there is nothing left to read the paths from
+    const orphaned = [
+      pendingDelete.item_img,
+      ...items.filter((i) => i.wishlist_id === pendingDelete.wishlist_id).map((i) => i.image_url),
+    ]
+
     setDeleting(true)
     const { error: deleteError } = await supabase
       .from('wishlists')
@@ -318,6 +326,8 @@ export default function Dashboard() {
       setError(deleteError.message)
       return
     }
+
+    await deleteStoredImages(orphaned)
 
     setPendingDelete(null)
     setOpenMenu(null)

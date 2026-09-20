@@ -117,17 +117,30 @@ export default function Friends() {
       return
     }
 
-    // a past request in this same direction leaves a row behind regardless of
-    // how it ended, so it has to be dealt with before a fresh one can be sent
+    if (targetId === userId) {
+      setError('that is you')
+      setSubmitting(false)
+      return
+    }
+
+    // both directions, not just the one about to be sent: if they already
+    // asked you, sending back would make a second, separate friendship
+    // between the same two people (see 019)
     const { data: existing } = await supabase
       .from('friend_requests')
-      .select('request_id, status')
-      .eq('sender_id', userId)
-      .eq('receiver_id', targetId)
+      .select('request_id, status, sender_id')
+      .or(
+        `and(sender_id.eq.${userId},receiver_id.eq.${targetId}),` +
+          `and(sender_id.eq.${targetId},receiver_id.eq.${userId})`,
+      )
       .maybeSingle()
 
     if (existing?.status === 'pending') {
-      setError('you already sent that person a request')
+      setError(
+        existing.sender_id === userId
+          ? 'you already sent that person a request'
+          : 'they have already asked you -- accept it above',
+      )
       setSubmitting(false)
       return
     }

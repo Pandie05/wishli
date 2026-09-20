@@ -215,7 +215,7 @@ button.wl-fact:hover:not(:disabled) .wl-fact-value {
 .wl-headactions .wl-add {
   border-color: transparent;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .wl-headactions .wl-add:hover:not(:disabled) {
@@ -349,7 +349,10 @@ button.wl-fact:hover:not(:disabled) .wl-fact-value {
   padding: 4px 8px;
   border-radius: 4px;
   background: rgba(255, 255, 255, 0.92);
-  color: var(--label);
+  /* the chip sits on a product photo, so its pale background is fixed in both
+     themes -- its text has to be a colour that stays dark, not one that
+     lightens with the palette */
+  color: var(--navy);
   font-size: 0.5rem;
   font-weight: 700;
   letter-spacing: 0.11em;
@@ -358,7 +361,7 @@ button.wl-fact:hover:not(:disabled) .wl-fact-value {
 
 .wl-chip--reserved {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .wl-chip--bought {
@@ -525,10 +528,13 @@ button.wl-fact:hover:not(:disabled) .wl-fact-value {
   border-top: 1px solid var(--border);
 }
 
+/* in the modal the chip is not over a photo, so it goes back to a surface --
+   and with it, back to normal body text rather than the fixed dark above */
 .wish-detail-status .wl-chip {
   position: static;
   display: inline-block;
   background: var(--surface-sunken);
+  color: var(--label);
 }
 
 .wish-detail-buttons {
@@ -540,6 +546,16 @@ button.wl-fact:hover:not(:disabled) .wl-fact-value {
   display: inline-flex;
   align-items: center;
   gap: 7px;
+}
+
+.wish-detail-left {
+  align-self: center;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
 }
 
 .wish-detail-qty {

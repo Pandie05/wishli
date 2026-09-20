@@ -16,6 +16,29 @@
 }
 
 .auth {
+  /* These pages are light-only by design: they carry their own palette below
+     and sit on artwork that only works against a pale ground. Most of that
+     palette is already independent of the app's tokens, but a few controls
+     (the submit button, the shared input chrome) read the global ones -- so
+     those are pinned to their light values here. Without this, dark mode
+     reaches in and restyles one button on an otherwise light page.
+     Remove this block if the auth pages ever get a dark treatment of their
+     own; nothing else depends on it. */
+  color-scheme: light;
+  --accent: #2f6be4;
+  --accent-hover: #2358c7;
+  --accent-soft: #eaf0fd;
+  --on-accent: #ffffff;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-sunken: #f4f5f8;
+  --border: #e6e8ef;
+  --border-strong: #d3d7e2;
+  --heading: #101a33;
+  --label: #434b60;
+  --muted: #8b90a3;
+  --placeholder: #a8adbd;
+
   /* Palette — shared with the credential form styles in login.css. */
   --login-accent: #7a86de;
   --login-accent-hover: #6975d2;

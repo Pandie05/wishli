@@ -16,6 +16,22 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
     />
     <title>wishli</title>
+    <script>
+      // Runs before the first paint so a dark-mode visitor never sees a white
+      // flash. Deliberately duplicates the small amount of logic in
+      // src/lib/theme.ts rather than importing it -- a module would load too
+      // late to prevent exactly the flash this exists to stop.
+      try {
+        var saved = localStorage.getItem('wishli-theme')
+        var dark =
+          saved === 'dark' ||
+          ((saved === 'system' || !saved) &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches)
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+      } catch (e) {
+        document.documentElement.dataset.theme = 'light'
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

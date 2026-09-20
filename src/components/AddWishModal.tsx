@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
+import { deleteStoredImages, discardUnsavedImage } from '../lib/storage'
 import { supabase } from '../lib/supabase'
 import ImageDrop from './ImageDrop'
 import MoneyInput from './MoneyInput'
@@ -173,7 +174,22 @@ export default function AddWishModal({
       return
     }
 
+    // the wish no longer points at the picture it was saved with
+    if (item?.image_url && item.image_url !== imageUrl) {
+      await deleteStoredImages([item.image_url])
+    }
+
     onSaved(wishlistId)
+    onClose()
+  }
+
+  /**
+   * Leaving without saving. Anything uploaded during this visit has nothing
+   * pointing at it, so it goes -- but only if it is genuinely new, otherwise
+   * cancelling an edit would delete the picture the wish still uses.
+   */
+  async function handleClose() {
+    await discardUnsavedImage(imageUrl, item?.image_url ?? null)
     onClose()
   }
 
@@ -217,12 +233,12 @@ export default function AddWishModal({
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       eyebrow={item ? 'Edit wish' : 'New wish'}
       title={item ? 'Edit a wish' : 'Add a wish'}
       footer={
         <>
-          <button type="button" onClick={onClose}>
+          <button type="button" onClick={handleClose}>
             Cancel
           </button>
           <button type="submit" form={FORM_ID} disabled={submitting}>

@@ -247,13 +247,24 @@ export default function WishDetailModal({
                 <>
                   {mostICanTake > 0 && (
                     <>
+                      {/* the max attribute does not stop anyone typing a
+                          bigger number, so it is clamped here as well -- and
+                          clamped in the field rather than silently at submit,
+                          so what you press Reserve on is what you asked for */}
                       <input
                         type="number"
                         className="wish-detail-qty"
                         min={1}
                         max={mostICanTake}
                         value={take}
-                        onChange={(e) => setTake(e.target.value)}
+                        onChange={(e) => {
+                          const typed = Number(e.target.value)
+                          if (!e.target.value) {
+                            setTake('')
+                            return
+                          }
+                          setTake(String(Math.max(1, Math.min(typed, mostICanTake))))
+                        }}
                         aria-label="How many to reserve"
                       />
                       <button
@@ -264,6 +275,9 @@ export default function WishDetailModal({
                         {busy && <Spinner />}
                         {myClaim ? 'Update' : 'Reserve'}
                       </button>
+                      <span className="wish-detail-left">
+                        {mostICanTake} left
+                      </span>
                     </>
                   )}
                   {myClaim && (
