@@ -63,6 +63,7 @@ sql-queries/
   005_claims_and_contributions.sql
   006_uploads_and_public_sharing.sql
   007_friends_and_notifications_pages.sql
+  008_sync_live_database.sql          <- existing database only, see below
 ```
 
 Each file is safe to re-run (everything is `if not exists` / `or replace`), so if you're not sure what's already applied, running the whole sequence again won't break anything.
@@ -70,6 +71,18 @@ Each file is safe to re-run (everything is `if not exists` / `or replace`), so i
 This six-file set is a squashed rewrite of what used to be 22 incremental migrations — it creates the same final schema directly instead of replaying every fix-up along the way (a column added then dropped, a policy patched twice, etc.). **It has not been run against a real database yet** — I traced it carefully by hand from the original files, but couldn't execute it in this environment to confirm it runs clean end to end, so treat it as needing one verification pass (a throwaway Supabase project, or a careful read) before relying on it for a fresh setup. The original 22 files are kept in `sql-queries/archive/` for reference and are still what produced the current live database — nothing there needs to be re-run.
 
 `007` is the first file added on top of the squash: it fixes notification messages coming out blank when a username could not be resolved (in SQL, `null || ' sent you a friend request'` is `null`, not the rest of the sentence), repairs the rows already written that way, and adds the two read-side functions the friends and notifications pages use — `friend_overview()` and `notification_feed()`. It creates no tables and changes no policies.
+
+#### `008` — only for a database that already exists
+
+**A fresh project does not need this file; run `001`–`007` and stop.**
+
+The live database grew through the original 22 files, and the squash was never executed against it — `007` was, which is why its functions are there and the squash's are not. That left three things the app calls missing from the live database: `usernames_for_ids` (dashboard avatars fall back to "?", the wish modal says "Reserved by a friend" instead of a name), `search_users` (the friends type-ahead silently returns nothing, because the call site discards the error), and the current `set_item_purchased` (marking something bought without reserving it first fails with `column reference "item_id" is ambiguous`).
+
+`008` applies just those, plus the missing indexes and the membership uniqueness, rather than running the whole squash against live rows. Every statement is idempotent.
+
+**It deliberately does not touch `public.friend_requests`** — that table is being worked on separately. The consequence to know about: removing a friend still fails silently for whoever *received* the original request, because the delete policy only allows the sender and PostgREST reports success for deleting nothing. Whoever picks that table up should carry `either party can remove a friend request` across from `004`.
+
+One judgement call in `008` worth reading before you run it: section 6 turns `users.public_profile` on by default and switches it on for existing accounts, carried over from the old `021`. It cannot distinguish an account that never changed the setting from one that deliberately opted out. Delete that section if you would rather leave existing accounts alone — nothing else depends on it.
 
 ### Edge functions
 
