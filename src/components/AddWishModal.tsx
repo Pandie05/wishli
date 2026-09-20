@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
+import { describeError } from '../lib/errors'
 import { deleteStoredImages, discardUnsavedImage } from '../lib/storage'
 import { supabase } from '../lib/supabase'
 import ImageDrop from './ImageDrop'
@@ -68,6 +69,18 @@ export default function AddWishModal({
   // fire the same request again
   const fetchedRef = useRef('')
 
+  // fillFromUrl reads these after an await, by which point a render that
+  // reset the fields (reopening the modal) may have already happened --
+  // reading name/price/imageUrl directly there would still see the stale
+  // pre-reset closure, since state variables are frozen to the render that
+  // defined the function. refs always hold whatever was most recently set.
+  const nameRef = useRef(name)
+  const priceRef = useRef(price)
+  const imageRef = useRef(imageUrl)
+  nameRef.current = name
+  priceRef.current = price
+  imageRef.current = imageUrl
+
   useEffect(() => {
     if (!open) return
     setName(item?.name ?? '')
@@ -124,11 +137,11 @@ export default function AddWishModal({
       return
     }
 
-    if (data?.title && !name.trim()) setName(data.title)
-    if (data?.price != null && !price) setPrice(String(data.price))
-    if (data?.image && !imageUrl) setImageUrl(data.image)
-    setAskForPrice(!!data?.priceUnavailable && !price)
-    setAskForImage(!!data?.imageUnavailable && !imageUrl)
+    if (data?.title && !nameRef.current.trim()) setName(data.title)
+    if (data?.price != null && !priceRef.current) setPrice(String(data.price))
+    if (data?.image && !imageRef.current) setImageUrl(data.image)
+    setAskForPrice(!!data?.priceUnavailable && !priceRef.current)
+    setAskForImage(!!data?.imageUnavailable && !imageRef.current)
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -170,7 +183,7 @@ export default function AddWishModal({
     setSubmitting(false)
 
     if (saveError) {
-      setError(saveError.message)
+      setError(describeError(saveError))
       return
     }
 

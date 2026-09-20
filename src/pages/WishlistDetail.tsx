@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { CSSProperties } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { daysUntil, formatTargetDate } from '../lib/dates'
 import { describeError } from '../lib/errors'
+import { coverGradient, money } from '../lib/format'
 import { deleteStoredImages } from '../lib/storage'
 import { supabase } from '../lib/supabase'
 import { WISH_COLUMNS } from '../lib/types'
@@ -19,24 +19,6 @@ import '../css/wishlist-detail.css'
 
 type Tab = 'all' | 'available' | 'reserved' | 'bought'
 type SortMode = 'priority' | 'price' | 'added'
-
-function money(value: number): string {
-  return `$${value.toLocaleString('en-US', {
-    minimumFractionDigits: value % 1 === 0 ? 0 : 2,
-    maximumFractionDigits: 2,
-  })}`
-}
-
-/** Same stable blue-family fallback the dashboard cards use. */
-function coverGradient(id: string): CSSProperties {
-  let hash = 0
-  for (let i = 0; i < id.length; i += 1) hash = (hash * 31 + id.charCodeAt(i)) >>> 0
-  const hue = 198 + (hash % 31)
-  return {
-    '--cover-a': `hsl(${hue} 30% 27%)`,
-    '--cover-b': `hsl(${(hue + 14) % 360} 34% 63%)`,
-  } as CSSProperties
-}
 
 function sortWishes(items: WishItem[], mode: SortMode): WishItem[] {
   const sorted = [...items]
@@ -61,7 +43,10 @@ export default function WishlistDetail() {
   const navigate = useNavigate()
   const shell = useShell()
 
-  const [userId, setUserId] = useState<string | null>(null)
+  // the shell already resolved the session (and redirects to /login itself
+  // if there is none) -- this page just waits for that instead of running
+  // its own supabase.auth.getSession() check
+  const userId = shell.userId
   const [wishlist, setWishlist] = useState<WishlistRow | null>(null)
   const [items, setItems] = useState<WishItem[]>([])
   const [members, setMembers] = useState<WishlistMember[]>([])
@@ -86,23 +71,16 @@ export default function WishlistDetail() {
   const [shareOpen, setShareOpen] = useState(false)
 
   const load = useCallback(async () => {
-    const { data: auth } = await supabase.auth.getSession()
-    const user = auth.session?.user
-    if (!user) {
-      navigate('/login', { replace: true })
-      return
-    }
-
-    setUserId(user.id)
+    if (!userId) return
 
     // one wave, not four: the friend list used to wait on everything above it
     const [
       { data: list, error: listError },
       { data: itemRows, error: itemError },
-      { data: memberRows },
-      { data: contribRows },
-      { data: claimRows },
-      { data: requests },
+      { data: memberRows, error: memberError },
+      { data: contribRows, error: contribError },
+      { data: claimRows, error: claimError },
+      { data: requests, error: requestError },
     ] = await Promise.all([
       supabase
         .from('wishlists')
@@ -133,7 +111,9 @@ export default function WishlistDetail() {
         .eq('status', 'accepted'),
     ])
 
-    setError(describeError(listError ?? itemError))
+    setError(
+      describeError(listError ?? itemError ?? memberError ?? contribError ?? claimError ?? requestError),
+    )
     if (list) setWishlist(list as WishlistRow)
     setItems((itemRows ?? []) as WishItem[])
     setMembers(
@@ -163,7 +143,7 @@ export default function WishlistDetail() {
       })),
     )
     setMyRole(
-      ((memberRows ?? []).find((m) => m.user_id === user.id)?.role as 'viewer' | 'editor') ?? null,
+      ((memberRows ?? []).find((m) => m.user_id === userId)?.role as 'viewer' | 'editor') ?? null,
     )
 
     // the page is usable from here -- everything below is names, which only
@@ -174,8 +154,8 @@ export default function WishlistDetail() {
     const friendIds = [
       ...new Set(
         (requests ?? [])
-          .map((r) => (r.sender_id === user.id ? r.receiver_id : r.sender_id))
-          .filter((id) => id !== user.id),
+          .map((r) => (r.sender_id === userId ? r.receiver_id : r.sender_id))
+          .filter((id) => id !== userId),
       ),
     ]
 
@@ -207,7 +187,7 @@ export default function WishlistDetail() {
         .filter((id) => !memberIds.has(id))
         .map((id) => ({ id, username: resolved[id] ?? '' })),
     )
-  }, [navigate, wishlistId])
+  }, [userId, wishlistId])
 
   useEffect(() => {
     load()
@@ -221,8 +201,23 @@ export default function WishlistDetail() {
     if (known) setWishlist(known)
   }, [shell.wishlists, wishlistId, wishlist])
 
+  // keeps the open wish-detail modal showing live data across a
+  // reserve/pledge/etc instead of the stale snapshot from when it was opened
+  useEffect(() => {
+    if (!viewing) return
+    const fresh = items.find((i) => i.item_id === viewing.item_id)
+    if (fresh && fresh !== viewing) setViewing(fresh)
+  }, [items, viewing])
+
   const isOwner = !!userId && wishlist?.id === userId
   const canEdit = isOwner || myRole === 'editor'
+  // set_item_purchased/RLS only let an editor touch items they personally
+  // added, unlike canEdit above which just gates whether the add-wish button
+  // shows at all -- editing an existing wish needs the narrower, per-item check
+  const canEditItem = useCallback(
+    (item: WishItem) => isOwner || (myRole === 'editor' && item.user_id === userId),
+    [isOwner, myRole, userId],
+  )
   // the whole point of aggregate visibility: the owner is not told who
   // reserved or bought what, only how much of the list is spoken for
   const aggregate = isOwner && wishlist?.purchase_visibility === 'aggregate'
@@ -289,7 +284,7 @@ export default function WishlistDetail() {
       setSharing(false)
 
       if (failure) {
-        setError(failure.message)
+        setError(describeError(failure))
         return
       }
 
@@ -309,7 +304,7 @@ export default function WishlistDetail() {
     setDeleting(false)
 
     if (failure) {
-      setError(failure.message)
+      setError(describeError(failure))
       return
     }
 
@@ -541,7 +536,7 @@ export default function WishlistDetail() {
               <button type="button" onClick={() => setViewing(item)}>
                 View
               </button>
-              {canEdit && (
+              {canEditItem(item) && (
                 <button type="button" onClick={() => setEditingWish(item)}>
                   Edit
                 </button>
@@ -565,12 +560,10 @@ export default function WishlistDetail() {
         contributions={viewing ? contributionsFor(viewing.item_id) : []}
         claims={viewing ? claimsFor(viewing.item_id) : []}
         hideDetail={aggregate}
-        canEdit={canEdit}
+        canEdit={viewing ? canEditItem(viewing) : false}
+        isOwner={isOwner}
         onClose={() => setViewing(null)}
-        onChanged={() => {
-          shell.refresh()
-          setViewing(null)
-        }}
+        onChanged={shell.refresh}
         onEdit={() => {
           setEditingWish(viewing)
           setViewing(null)

@@ -110,7 +110,14 @@ export default function AppShell() {
     async function load() {
       const { data } = await supabase.auth.getSession()
       const user = data.session?.user
-      if (!user) return
+      if (!user) {
+        // every page under this layout assumes a session -- checking once
+        // here instead of duplicating this same check in each of them, and
+        // meaning a signed-out visit to a deep link never gets a flash of
+        // the authenticated nav before a page notices and redirects itself
+        if (!cancelled) navigate('/login', { replace: true })
+        return
+      }
 
       const [{ data: profile }, { data: rows }, { count }] = await Promise.all([
         supabase.from('users').select('username, avatar_url').eq('id', user.id).single(),
@@ -137,7 +144,7 @@ export default function AppShell() {
     return () => {
       cancelled = true
     }
-  }, [dataVersion])
+  }, [dataVersion, navigate])
 
   // measure before paint so the pill is never seen in the wrong place. on a
   // route with no nav row of its own (a wishlist) there is nothing to measure,

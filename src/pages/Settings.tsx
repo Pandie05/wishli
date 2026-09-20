@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { describeError } from '../lib/errors'
 import { deleteStoredImages } from '../lib/storage'
 import { supabase } from '../lib/supabase'
 import { getThemeChoice, setThemeChoice } from '../lib/theme'
@@ -13,7 +13,6 @@ import '../css/settings.css'
 type Message = { text: string; ok: boolean } | null
 
 export default function Settings() {
-    const navigate = useNavigate()
     const shell = useShell()
     const [loading, setLoading] = useState(true)
     const [userId, setUserId] = useState<string | null>(null)
@@ -50,17 +49,19 @@ export default function Settings() {
     const [passwordMessage, setPasswordMessage] = useState<Message>(null)
     const [savingPassword, setSavingPassword] = useState(false)
 
+    // the shell already resolved the session (and redirects to /login itself
+    // if there is none) -- this page just waits for that instead of running
+    // its own supabase.auth.getSession() check for the redirect. getSession()
+    // is still called here too, since this page needs email/identities off
+    // the auth user object that the shell's context does not carry.
     useEffect(() => {
+        if (!shell.userId) return
         let cancelled = false
 
         async function load() {
             const { data } = await supabase.auth.getSession()
             const user = data.session?.user
-
-            if (!user) {
-                if (!cancelled) navigate('/login', { replace: true })
-                return
-            }
+            if (!user) return
 
             const { data: profile } = await supabase
                 .from('users')
@@ -85,7 +86,7 @@ export default function Settings() {
         return () => {
             cancelled = true
         }
-    }, [navigate])
+    }, [shell.userId])
 
     // ImageDrop already handles the upload itself and hands back a url (or
     // null on Remove) -- there is nothing else on this form to batch it with,
@@ -127,7 +128,7 @@ export default function Settings() {
         setSavingProfile(false)
 
         if (error) {
-            setProfileMessage({ text: error.message, ok: false })
+            setProfileMessage({ text: describeError(error) ?? error.message, ok: false })
             return
         }
 

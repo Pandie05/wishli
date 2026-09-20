@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import type { CSSProperties } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { formatTargetDate } from '../lib/dates'
+import { coverGradient } from '../lib/format'
 import { supabase } from '../lib/supabase'
 import '../css/shared-wishlist.css'
 
@@ -19,17 +19,6 @@ type ProfileWishlist = {
   item_img: string | null
   share_token: string
   item_count: number
-}
-
-/** Same stable blue-family fallback the dashboard cards use. */
-function coverGradient(id: string): CSSProperties {
-  let hash = 0
-  for (let i = 0; i < id.length; i += 1) hash = (hash * 31 + id.charCodeAt(i)) >>> 0
-  const hue = 198 + (hash % 31)
-  return {
-    '--cover-a': `hsl(${hue} 30% 27%)`,
-    '--cover-b': `hsl(${(hue + 14) % 360} 34% 63%)`,
-  } as CSSProperties
 }
 
 function initials(name: string): string {

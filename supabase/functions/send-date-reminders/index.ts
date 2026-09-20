@@ -55,32 +55,46 @@ Deno.serve(async (req) => {
     })
   }
 
+  const dueList = due ?? []
   let sent = 0
 
-  for (const wishlist of due ?? []) {
-    const days = Math.round(
-      (new Date(`${wishlist.target_date}T00:00:00Z`).getTime() - today.getTime()) / 86_400_000,
-    )
-    const when = days === 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`
+  // one insert and one update for the whole batch instead of two round trips
+  // per wishlist -- on a day with a couple hundred due, that was a couple
+  // hundred sequential round trips inside this function's time budget for no
+  // reason. a single insert is all-or-nothing in Postgres, so if it fails the
+  // whole batch is simply retried on tomorrow's run (reminder_sent_at is
+  // still null for all of them) rather than losing just the unlucky ones.
+  if (dueList.length > 0) {
+    const notifications = dueList.map((wishlist) => {
+      const days = Math.round(
+        (new Date(`${wishlist.target_date}T00:00:00Z`).getTime() - today.getTime()) / 86_400_000,
+      )
+      const when = days === 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`
 
-    const { error: notifyError } = await supabase.from('notifications').insert({
-      user_id: wishlist.id,
-      wishlist_id: wishlist.wishlist_id,
-      type: 'target_date_reminder',
-      message: `"${wishlist.name}" is due ${when}`,
+      return {
+        user_id: wishlist.id,
+        wishlist_id: wishlist.wishlist_id,
+        type: 'target_date_reminder',
+        message: `"${wishlist.name}" is due ${when}`,
+      }
     })
 
-    if (notifyError) continue
+    const { error: notifyError } = await supabase.from('notifications').insert(notifications)
 
-    const { error: stampError } = await supabase
-      .from('wishlists')
-      .update({ reminder_sent_at: new Date().toISOString() })
-      .eq('wishlist_id', wishlist.wishlist_id)
+    if (!notifyError) {
+      const { error: stampError } = await supabase
+        .from('wishlists')
+        .update({ reminder_sent_at: new Date().toISOString() })
+        .in(
+          'wishlist_id',
+          dueList.map((wishlist) => wishlist.wishlist_id),
+        )
 
-    if (!stampError) sent += 1
+      if (!stampError) sent = dueList.length
+    }
   }
 
-  return new Response(JSON.stringify({ checked: due?.length ?? 0, sent }), {
+  return new Response(JSON.stringify({ checked: dueList.length, sent }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })
 })

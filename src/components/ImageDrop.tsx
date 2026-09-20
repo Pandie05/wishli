@@ -8,6 +8,48 @@ const ACCEPT = ['image/png', 'image/jpeg', 'image/webp', 'image/gif']
 
 const BUCKET = 'wishli-images'
 
+// every use of this control shows the picture at thumbnail/card size, never
+// full-resolution, so there is nothing gained from uploading (and every
+// later viewer downloading) a phone photo at its original size
+const MAX_DIMENSION = 1600
+
+/**
+ * Downscales an over-large image before it goes anywhere. Only ever shrinks
+ * (never upscales a small one), and only replaces the file if that actually
+ * came out smaller -- an already-small or already-compressed image is left
+ * alone rather than risking a re-encode that makes it bigger.
+ */
+async function compressImage(file: File): Promise<File> {
+  // a gif may be animated; redrawing it to a canvas only keeps one frame
+  if (file.type === 'image/gif') return file
+
+  const bitmap = await createImageBitmap(file).catch(() => null)
+  if (!bitmap) return file
+
+  const scale = Math.min(1, MAX_DIMENSION / Math.max(bitmap.width, bitmap.height))
+  if (scale === 1) {
+    bitmap.close()
+    return file
+  }
+
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.round(bitmap.width * scale)
+  canvas.height = Math.round(bitmap.height * scale)
+  const ctx = canvas.getContext('2d')
+  if (!ctx) {
+    bitmap.close()
+    return file
+  }
+
+  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+  bitmap.close()
+
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, file.type, 0.85))
+  if (!blob || blob.size >= file.size) return file
+
+  return new File([blob], file.name, { type: file.type })
+}
+
 type Props = {
   value: string | null
   onChange: (url: string | null) => void
@@ -61,11 +103,13 @@ export default function ImageDrop({ value, onChange, userId, onError, hint }: Pr
     setBusy(true)
     onError(null)
 
+    const compressed = await compressImage(file)
+
     const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
     const path = `${userId}/${crypto.randomUUID()}.${ext}`
 
-    const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
-      contentType: file.type,
+    const { error } = await supabase.storage.from(BUCKET).upload(path, compressed, {
+      contentType: compressed.type,
       upsert: false,
     })
 

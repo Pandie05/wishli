@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { describeError } from '../lib/errors'
 import { supabase } from '../lib/supabase'
-import { initialsFor } from '../components/AppShell'
+import { initialsFor, useShell } from '../components/AppShell'
 import ConfirmModal from '../components/ConfirmModal'
 import '../css/friends.css'
 
@@ -14,9 +14,17 @@ type Request = {
   isSender: boolean
 }
 
+type UserMatch = {
+  id: string
+  username: string
+  avatar_url: string | null
+}
+
 export default function Friends() {
-  const navigate = useNavigate()
-  const [userId, setUserId] = useState<string | null>(null)
+  // the shell already resolved the session (and redirects to /login itself
+  // if there is none) -- this page just waits for that instead of running
+  // its own supabase.auth.getSession() check
+  const userId = useShell().userId
   const [incoming, setIncoming] = useState<Request[]>([])
   const [outgoing, setOutgoing] = useState<Request[]>([])
   const [friends, setFriends] = useState<Request[]>([])
@@ -25,6 +33,10 @@ export default function Friends() {
   const [username, setUsername] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+
+  const [suggestions, setSuggestions] = useState<UserMatch[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const searchRef = useRef<HTMLDivElement | null>(null)
 
   const [removing, setRemoving] = useState<Request | null>(null)
   const [removeBusy, setRemoveBusy] = useState(false)
@@ -68,23 +80,13 @@ export default function Friends() {
   }
 
   useEffect(() => {
+    if (!userId) return
+    const uid = userId
     let cancelled = false
 
     async function load() {
-      const { data } = await supabase.auth.getSession()
-      const user = data.session?.user
-
-      if (!user) {
-        if (!cancelled) navigate('/login', { replace: true })
-        return
-      }
-
-      await loadRequests(user.id)
-
-      if (!cancelled) {
-        setUserId(user.id)
-        setLoading(false)
-      }
+      await loadRequests(uid)
+      if (!cancelled) setLoading(false)
     }
 
     load()
@@ -92,11 +94,51 @@ export default function Friends() {
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigate])
+  }, [userId])
+
+  // debounced as-you-type search -- waits for a pause in typing rather than
+  // firing search_users on every keystroke
+  useEffect(() => {
+    const trimmed = username.trim()
+    if (trimmed.length < 1) {
+      setSuggestions([])
+      return
+    }
+
+    let cancelled = false
+    const timer = setTimeout(async () => {
+      const { data } = await supabase.rpc('search_users', { query: trimmed })
+      if (!cancelled) setSuggestions((data ?? []) as UserMatch[])
+    }, 250)
+
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [username])
+
+  // closes the suggestion list on a click anywhere outside the search field,
+  // same pattern AppShell uses for its account menu
+  useEffect(() => {
+    if (!showSuggestions) return
+
+    function onDown(event: MouseEvent) {
+      if (!searchRef.current?.contains(event.target as Node)) setShowSuggestions(false)
+    }
+
+    window.addEventListener('mousedown', onDown)
+    return () => window.removeEventListener('mousedown', onDown)
+  }, [showSuggestions])
+
+  function pickSuggestion(match: UserMatch) {
+    setUsername(match.username)
+    setShowSuggestions(false)
+  }
 
   async function handleSend(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (submitting || !userId) return
+    setShowSuggestions(false)
 
     const trimmed = username.trim()
     if (!trimmed) {
@@ -160,7 +202,7 @@ export default function Friends() {
       .insert({ sender_id: userId, receiver_id: targetId })
 
     if (insertError) {
-      setError(insertError.message)
+      setError(describeError(insertError))
       setSubmitting(false)
       return
     }
@@ -197,7 +239,7 @@ export default function Friends() {
     setRemoveBusy(false)
 
     if (failure) {
-      setError(failure.message)
+      setError(describeError(failure))
       setRemoving(null)
       return
     }
@@ -219,16 +261,39 @@ export default function Friends() {
         </div>
 
         <form className="fr-add" onSubmit={handleSend}>
-          <label className="fr-add-field">
-            <span className="fr-add-at">@</span>
-            <input
-              type="text"
-              placeholder="username"
-              aria-label="Username to add"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-            />
-          </label>
+          <div className="fr-add-search" ref={searchRef}>
+            <label className="fr-add-field">
+              <span className="fr-add-at">@</span>
+              <input
+                type="text"
+                placeholder="username"
+                aria-label="Username to add"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                onFocus={() => setShowSuggestions(true)}
+                autoComplete="off"
+              />
+            </label>
+
+            {showSuggestions && suggestions.length > 0 && (
+              <ul className="fr-suggest">
+                {suggestions.map((match) => (
+                  <li key={match.id}>
+                    <button type="button" onClick={() => pickSuggestion(match)}>
+                      <span className="fr-suggest-avatar">
+                        {match.avatar_url ? (
+                          <img src={match.avatar_url} alt="" />
+                        ) : (
+                          initialsFor(match.username)
+                        )}
+                      </span>
+                      @{match.username}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
           <button type="submit" className="fr-add-go" disabled={submitting}>
             {submitting ? 'Sending...' : 'Send request'}
           </button>

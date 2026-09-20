@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import type { Friend } from '../lib/types'
 import { initialsFor } from './AppShell'
-
-export type Friend = { id: string; username: string }
 
 type Props = {
   selected: Friend[]

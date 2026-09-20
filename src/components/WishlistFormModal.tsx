@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
+import { describeError } from '../lib/errors'
 import { deleteStoredImages, discardUnsavedImage } from '../lib/storage'
 import { supabase } from '../lib/supabase'
 import FriendPicker from './FriendPicker'
-import type { Friend } from './FriendPicker'
+import type { Friend } from '../lib/types'
 import ImageDrop from './ImageDrop'
 import MoneyInput, { clampMoney } from './MoneyInput'
 import Modal from './Modal'
@@ -105,7 +106,7 @@ export default function WishlistFormModal({ open, userId, wishlist, onClose, onS
 
     if (saveError) {
       setSubmitting(false)
-      setError(saveError.message)
+      setError(describeError(saveError))
       return
     }
 
@@ -125,7 +126,7 @@ export default function WishlistFormModal({ open, userId, wishlist, onClose, onS
         // the list itself saved, so say what did and did not happen rather
         // than leaving them to guess
         setSubmitting(false)
-        setError(`Wishlist saved, but the invites failed: ${inviteError.message}`)
+        setError(`Wishlist saved, but the invites failed: ${describeError(inviteError)}`)
         onSaved(saved)
         return
       }

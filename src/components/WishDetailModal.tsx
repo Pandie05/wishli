@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
+import { money } from '../lib/format'
 import { supabase } from '../lib/supabase'
 import type { Contribution, ItemClaim, WishItem } from '../lib/types'
+import { useAsyncAction } from '../lib/useAsyncAction'
 import Modal from './Modal'
 import MoneyInput from './MoneyInput'
 import { PRIORITY_LABELS } from './PriorityPicker'
@@ -17,17 +19,12 @@ type Props = {
   /** the owner of an aggregate-visibility list must not see who did what */
   hideDetail: boolean
   canEdit: boolean
+  /** the wishlist owner can't pledge toward their own wish -- RLS blocks it */
+  isOwner: boolean
   onClose: () => void
   onChanged: () => void
   onEdit: () => void
   onDelete: () => void
-}
-
-function money(value: number): string {
-  return `$${value.toLocaleString('en-US', {
-    minimumFractionDigits: value % 1 === 0 ? 0 : 2,
-    maximumFractionDigits: 2,
-  })}`
 }
 
 /**
@@ -44,15 +41,15 @@ export default function WishDetailModal({
   claims,
   hideDetail,
   canEdit,
+  isOwner,
   onClose,
   onChanged,
   onEdit,
   onDelete,
 }: Props) {
-  const [busy, setBusy] = useState(false)
+  const { busy, error, setError, run } = useAsyncAction()
   const [pledge, setPledge] = useState('')
   const [take, setTake] = useState('1')
-  const [error, setError] = useState<string | null>(null)
 
   // the modal stays mounted between wishes, so without this the box would
   // still hold whatever was typed against the last item -- and someone who
@@ -74,19 +71,10 @@ export default function WishDetailModal({
   // releasing your own claim frees it back up, so your ceiling includes it
   const mostICanTake = left + (myClaim?.quantity ?? 0)
   const multiple = item.quantity > 1
-
-  async function run(work: () => Promise<{ error: { message: string } | null }>) {
-    if (busy) return
-    setBusy(true)
-    setError(null)
-    const { error: failure } = await work()
-    setBusy(false)
-    if (failure) {
-      setError(failure.message)
-      return
-    }
-    onChanged()
-  }
+  // set_item_purchased raises 'claimed by someone else' in exactly this
+  // state: you have no claim of your own and someone else has claimed part
+  // of it. unmarking a purchase never hits that guard, so it's always allowed.
+  const canMarkBought = item.purchased || claimed === 0 || Boolean(myClaim)
 
   function reserve(quantity: number) {
     if (!item || !userId || quantity < 1) return
@@ -94,14 +82,14 @@ export default function WishDetailModal({
       supabase
         .from('item_claims')
         .upsert({ item_id: item.item_id, user_id: userId, quantity }, { onConflict: 'item_id,user_id' }),
-    )
+    ).then((ok) => ok && onChanged())
   }
 
   function release() {
     if (!item || !userId) return
     void run(async () =>
       supabase.from('item_claims').delete().eq('item_id', item.item_id).eq('user_id', userId),
-    )
+    ).then((ok) => ok && onChanged())
   }
 
   function togglePurchased() {
@@ -111,7 +99,7 @@ export default function WishDetailModal({
         item_id: item.item_id,
         purchased: !item.purchased,
       }),
-    )
+    ).then((ok) => ok && onChanged())
   }
 
   function savePledge() {
@@ -129,7 +117,12 @@ export default function WishDetailModal({
           { item_id: item.item_id, user_id: userId, amount },
           { onConflict: 'item_id,user_id' },
         ),
-    ).then(() => setPledge(''))
+    ).then((ok) => {
+      if (ok) {
+        setPledge('')
+        onChanged()
+      }
+    })
   }
 
   function removePledge() {
@@ -140,7 +133,7 @@ export default function WishDetailModal({
         .delete()
         .eq('item_id', item.item_id)
         .eq('user_id', userId),
-    )
+    ).then((ok) => ok && onChanged())
   }
 
   function statusChip() {
@@ -299,9 +292,11 @@ export default function WishDetailModal({
                 )
               )}
 
-              <button type="button" onClick={togglePurchased} disabled={busy}>
-                {item.purchased ? 'Mark not bought' : 'Mark bought'}
-              </button>
+              {canMarkBought && (
+                <button type="button" onClick={togglePurchased} disabled={busy}>
+                  {item.purchased ? 'Mark not bought' : 'Mark bought'}
+                </button>
+              )}
             </div>
 
             <div className="wish-detail-pledges">
@@ -343,21 +338,25 @@ export default function WishDetailModal({
                 </ul>
               )}
 
-              <div className="wish-detail-pledge-form">
-                <MoneyInput
-                  placeholder={mine ? String(mine.amount) : '0.00'}
-                  value={pledge}
-                  onChange={setPledge}
-                />
-                <button type="button" onClick={savePledge} disabled={busy}>
-                  {mine ? 'Update' : 'Pledge'}
-                </button>
-                {mine && (
-                  <button type="button" onClick={removePledge} disabled={busy}>
-                    Remove
+              {/* RLS blocks the owner from pledging to their own wish -- see
+                  the item_contributions insert policy in 009 */}
+              {!isOwner && (
+                <div className="wish-detail-pledge-form">
+                  <MoneyInput
+                    placeholder={mine ? String(mine.amount) : '0.00'}
+                    value={pledge}
+                    onChange={setPledge}
+                  />
+                  <button type="button" onClick={savePledge} disabled={busy}>
+                    {mine ? 'Update' : 'Pledge'}
                   </button>
-                )}
-              </div>
+                  {mine && (
+                    <button type="button" onClick={removePledge} disabled={busy}>
+                      Remove
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}

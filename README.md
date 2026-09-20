@@ -56,31 +56,17 @@ The database has no separate migration tool — `sql-queries/` holds the schema 
 
 ```
 sql-queries/
-  001_create_users_table.sql
-  002_wishlists_rls.sql
-  003_items_rls.sql
+  001_users_and_auth.sql
+  002_wishlists_and_items.sql
+  003_notifications.sql
   004_friends_and_sharing.sql
-  005_account_settings.sql
-  006_purchase_visibility.sql
-  007_notifications.sql
-  008_item_priority_rename.sql
-  009_claims_editors_contributions.sql
-  010_fix_contribution_and_item_gaps.sql
-  011_wishlist_details_and_uploads.sql
-  012_wishlist_description.sql
-  013_avatars_sharing_and_reminders.sql
-  014_drop_unused_verification_codes.sql
-  015_item_quantity_and_claims.sql
-  016_public_profiles.sql
-  017_either_party_can_remove_a_friend.sql
-  018_indexes_and_batched_usernames.sql
-  019_friendship_and_membership_integrity.sql
-  020_fix_ambiguous_item_id_on_purchase.sql
+  005_claims_and_contributions.sql
+  006_uploads_and_public_sharing.sql
 ```
 
 Each file is safe to re-run (everything is `if not exists` / `or replace`), so if you're not sure what's already applied, running the whole sequence again won't break anything.
 
-The one file to read before running is `015`: it moves reservations out of `items.claimed_by` into a new `item_claims` table and then **drops** `claimed_by`/`claimed_at`. Existing reservations are copied across first, and a second run skips the copy rather than failing — but those two columns do not come back.
+This six-file set is a squashed rewrite of what used to be 22 incremental migrations — it creates the same final schema directly instead of replaying every fix-up along the way (a column added then dropped, a policy patched twice, etc.). **It has not been run against a real database yet** — I traced it carefully by hand from the original files, but couldn't execute it in this environment to confirm it runs clean end to end, so treat it as needing one verification pass (a throwaway Supabase project, or a careful read) before relying on it for a fresh setup. The original 22 files are kept in `sql-queries/archive/` for reference and are still what produced the current live database — nothing there needs to be re-run.
 
 ### Edge functions
 

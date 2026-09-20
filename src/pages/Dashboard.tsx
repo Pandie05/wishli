@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { CSSProperties, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { daysUntil, formatTargetDate } from '../lib/dates'
+import { daysUntil, formatTargetDate, timeAgo } from '../lib/dates'
 import { describeError } from '../lib/errors'
+import { coverGradient, money } from '../lib/format'
 import { deleteStoredImages } from '../lib/storage'
 import { supabase } from '../lib/supabase'
 import { initialsFor, useShell } from '../components/AppShell'
@@ -40,27 +41,22 @@ type ActivityRow = {
 type SortMode = 'recent' | 'az' | 'value' | 'upcoming'
 
 /** "$1,349" / "$12.50" — whole numbers stay whole, the mockup shows no .00 */
-function money(value: number): string {
-  return `$${value.toLocaleString('en-US', {
-    minimumFractionDigits: value % 1 === 0 ? 0 : 2,
-    maximumFractionDigits: 2,
-  })}`
-}
-
 function ordinal(index: number): string {
   return String(index + 1).padStart(2, '0')
 }
 
-function relativeTime(iso: string): string {
-  const then = new Date(iso).getTime()
-  const minutes = Math.max(0, Math.round((Date.now() - then) / 60000))
-  if (minutes < 60) return `${minutes}m`
-  const hours = Math.round(minutes / 60)
-  if (hours < 24) return `${hours}h`
-  const days = Math.round(hours / 24)
-  if (days === 1) return 'Yesterday'
-  if (days < 7) return `${days}d`
-  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+/**
+ * Builds the "which wishlist names count as highlightable" pattern once, not
+ * once per activity row per render -- names only actually change when the
+ * wishlist list itself does.
+ */
+function buildHighlightPattern(listNames: string[]): RegExp {
+  const names = listNames
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length)
+    .map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+
+  return new RegExp(`"[^"]+"${names.length ? `|${names.join('|')}` : ''}`, 'g')
 }
 
 /**
@@ -68,13 +64,10 @@ function relativeTime(iso: string): string {
  * names arrive quoted from the notification triggers (see 007/009) and
  * wishlist names arrive bare, so both are matched and wrapped.
  */
-function highlight(message: string, listNames: string[]): ReactNode[] {
-  const names = listNames
-    .filter(Boolean)
-    .sort((a, b) => b.length - a.length)
-    .map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-
-  const pattern = new RegExp(`"[^"]+"${names.length ? `|${names.join('|')}` : ''}`, 'g')
+function highlight(message: string, pattern: RegExp): ReactNode[] {
+  // the pattern carries the global flag and is reused across every row in a
+  // render, so its match cursor from the last message has to be reset first
+  pattern.lastIndex = 0
 
   const out: ReactNode[] = []
   let last = 0
@@ -94,17 +87,6 @@ function highlight(message: string, listNames: string[]): ReactNode[] {
   return out
 }
 
-/** A stable blue-family gradient per wishlist, for lists with no cover art. */
-function coverGradient(id: string): CSSProperties {
-  let hash = 0
-  for (let i = 0; i < id.length; i += 1) hash = (hash * 31 + id.charCodeAt(i)) >>> 0
-  const hue = 198 + (hash % 31) // 198–228deg: the mockup's art is all blue
-  return {
-    '--cover-a': `hsl(${hue} 30% 27%)`,
-    '--cover-b': `hsl(${(hue + 14) % 360} 34% 63%)`,
-  } as CSSProperties
-}
-
 function greeting(date: Date): string {
   const hour = date.getHours()
   if (hour < 12) return 'Good morning'
@@ -119,7 +101,10 @@ export default function Dashboard() {
   // made from the nav rather than from here
   const shell = useShell()
 
-  const [userId, setUserId] = useState<string | null>(null)
+  // the shell already resolved the session (and redirects to /login itself
+  // if there is none) -- this page just waits for that instead of running
+  // its own supabase.auth.getSession() check
+  const userId = shell.userId
   const [username, setUsername] = useState('')
   const [wishlists, setWishlists] = useState<WishlistRow[]>([])
   const [items, setItems] = useState<ItemRow[]>([])
@@ -145,23 +130,17 @@ export default function Dashboard() {
   const [quickNote, setQuickNote] = useState<{ text: string; ok: boolean } | null>(null)
 
   const load = useCallback(async () => {
-    const { data } = await supabase.auth.getSession()
-    const user = data.session?.user
-
-    if (!user) {
-      navigate('/login', { replace: true })
-      return
-    }
+    if (!userId) return
 
     const [
       { data: profile },
       { data: listRows, error: listError },
       { data: itemRows, error: itemError },
-      { data: memberRows },
-      { data: claimRows },
-      { data: notifRows },
+      { data: memberRows, error: memberError },
+      { data: claimRows, error: claimError },
+      { data: notifRows, error: notifError },
     ] = await Promise.all([
-        supabase.from('users').select('username').eq('id', user.id).single(),
+        supabase.from('users').select('username').eq('id', userId).single(),
         // rls returns lists you own plus lists you have been added to
         supabase
           .from('wishlists')
@@ -181,9 +160,8 @@ export default function Dashboard() {
       ])
 
     // a rejected query used to look exactly like an empty account
-    setError(describeError(listError ?? itemError))
+    setError(describeError(listError ?? itemError ?? memberError ?? claimError ?? notifError))
 
-    setUserId(user.id)
     setUsername(profile?.username ?? '')
     setWishlists((listRows ?? []) as WishlistRow[])
     setItems((itemRows ?? []) as ItemRow[])
@@ -206,7 +184,7 @@ export default function Dashboard() {
         ]),
       ),
     )
-  }, [navigate])
+  }, [userId])
 
   useEffect(() => {
     load()
@@ -221,6 +199,11 @@ export default function Dashboard() {
   }, [shell.wishlists, loading])
 
   const owned = useMemo(() => wishlists.filter((w) => w.id === userId), [wishlists, userId])
+
+  const activityPattern = useMemo(
+    () => buildHighlightPattern(wishlists.map((w) => w.name)),
+    [wishlists],
+  )
 
   const { counts, totals, covers, reserved, ownedItemCount } = useMemo(() => {
     const counts: Record<string, number> = {}
@@ -323,7 +306,7 @@ export default function Dashboard() {
     setDeleting(false)
 
     if (deleteError) {
-      setError(deleteError.message)
+      setError(describeError(deleteError))
       return
     }
 
@@ -364,7 +347,7 @@ export default function Dashboard() {
     setQuickBusy(false)
 
     if (insertError) {
-      setQuickNote({ text: insertError.message, ok: false })
+      setQuickNote({ text: describeError(insertError) ?? insertError.message, ok: false })
       return
     }
 
@@ -642,8 +625,8 @@ export default function Dashboard() {
                       navigate(n.wishlist_id ? `/wishlist/${n.wishlist_id}` : '/notifications')
                     }
                   >
-                    {highlight(n.message ?? '', wishlists.map((w) => w.name))}
-                    <span className="dash-activity-time">{relativeTime(n.created_at)}</span>
+                    {highlight(n.message ?? '', activityPattern)}
+                    <span className="dash-activity-time">{timeAgo(n.created_at)}</span>
                   </button>
                 </li>
               ))}

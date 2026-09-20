@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { useAsyncAction } from '../lib/useAsyncAction'
 import { initialsFor } from './AppShell'
 import Modal from './Modal'
 import type { Friend, WishlistMember } from '../lib/types'
@@ -31,27 +32,18 @@ export default function ManagePeopleModal({
   onChanged,
 }: Props) {
   const [adding, setAdding] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  async function run(work: () => Promise<{ error: { message: string } | null }>) {
-    if (busy) return
-    setBusy(true)
-    setError(null)
-    const { error: failure } = await work()
-    setBusy(false)
-    if (failure) {
-      setError(failure.message)
-      return
-    }
-    onChanged()
-  }
+  const { busy, error, run } = useAsyncAction()
 
   function addMember() {
     if (!adding) return
     void run(async () =>
       supabase.from('wishlist_members').insert({ wishlist_id: wishlistId, user_id: adding }),
-    ).then(() => setAdding(''))
+    ).then((ok) => {
+      if (ok) {
+        setAdding('')
+        onChanged()
+      }
+    })
   }
 
   function setRole(member: WishlistMember, role: 'viewer' | 'editor') {
@@ -63,13 +55,13 @@ export default function ManagePeopleModal({
         user_id: member.user_id,
         role,
       }),
-    )
+    ).then((ok) => ok && onChanged())
   }
 
   function remove(member: WishlistMember) {
     void run(async () =>
       supabase.from('wishlist_members').delete().eq('member_id', member.member_id),
-    )
+    ).then((ok) => ok && onChanged())
   }
 
   return (

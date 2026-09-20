@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { formatTargetDate } from '../lib/dates'
+import { money } from '../lib/format'
 import { supabase } from '../lib/supabase'
 import '../css/wishlist-detail.css'
 import '../css/shared-wishlist.css'
@@ -25,13 +26,6 @@ type SharedItem = {
   quantity: number
   claimed_quantity: number
   reserved: boolean
-}
-
-function money(value: number): string {
-  return `$${value.toLocaleString('en-US', {
-    minimumFractionDigits: value % 1 === 0 ? 0 : 2,
-    maximumFractionDigits: 2,
-  })}`
 }
 
 /**

@@ -32,18 +32,16 @@ export default function Notifications() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [clearing, setClearing] = useState(false)
 
+  // the shell already resolved the session (and redirects to /login itself
+  // if there is none) -- this page just waits for that instead of running
+  // its own supabase.auth.getSession() check
+  const userId = shell.userId
+
   useEffect(() => {
+    if (!userId) return
     let cancelled = false
 
     async function load() {
-      const { data } = await supabase.auth.getSession()
-      const user = data.session?.user
-
-      if (!user) {
-        if (!cancelled) navigate('/login', { replace: true })
-        return
-      }
-
       const [{ data: rows }, { count }] = await Promise.all([
         supabase
           .from('notifications')
@@ -67,7 +65,7 @@ export default function Notifications() {
     return () => {
       cancelled = true
     }
-  }, [navigate])
+  }, [userId])
 
   async function loadMore() {
     if (loadingMore) return
