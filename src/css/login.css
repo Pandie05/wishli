@@ -96,6 +96,25 @@
   border-color: var(--login-accent);
 }
 
+.login-remember {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: -6px 0 18px;
+  font-size: 14.5px;
+  color: var(--login-label);
+  cursor: pointer;
+  user-select: none;
+}
+
+.login-remember input {
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  accent-color: var(--login-accent);
+  cursor: pointer;
+}
+
 .login-error,
 .login-notice {
   margin: 0 0 16px;
