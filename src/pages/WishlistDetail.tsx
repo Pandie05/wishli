@@ -193,6 +193,98 @@ export default function WishlistDetail() {
     load()
   }, [load, shell.dataVersion])
 
+  useEffect(() => {
+    if (!wishlistId) return
+
+    const channel = supabase
+      .channel(`wl-items-${wishlistId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'items', filter: `wishlist_id=eq.${wishlistId}` },
+        (payload: any) => {
+          if (payload.eventType === 'INSERT') {
+            const inserted = payload.new as WishItem
+            setItems((prev) => (prev.some((i) => i.item_id === inserted.item_id) ? prev : [...prev, inserted]))
+          } else if (payload.eventType === 'UPDATE') {
+            const updated = payload.new as WishItem
+            setItems((prev) => prev.map((i) => (i.item_id === updated.item_id ? updated : i)))
+          } else if (payload.eventType === 'DELETE') {
+            const deleted = payload.old as WishItem
+            setItems((prev) => prev.filter((i) => i.item_id !== deleted.item_id))
+          }
+        },
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [wishlistId])
+
+  const itemIdsKey = items.map((i) => i.item_id).join(',')
+
+  useEffect(() => {
+    if (!itemIdsKey) return
+
+    const channel = supabase
+      .channel(`wl-claims-${itemIdsKey}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'item_claims', filter: `item_id=in.(${itemIdsKey})` },
+        (payload: any) => {
+          if (payload.eventType === 'INSERT') {
+            const row = payload.new
+            setClaims((prev) =>
+              prev.some((c) => c.claim_id === row.claim_id)
+                ? prev
+                : [
+                  ...prev,
+                  {
+                    claim_id: row.claim_id,
+                    item_id: row.item_id,
+                    user_id: row.user_id,
+                    quantity: Number(row.quantity),
+                    username: names[row.user_id] ?? '',
+                  },
+                ],
+            )
+          } else if (payload.eventType === 'UPDATE') {
+            const row = payload.new
+            setClaims((prev) =>
+              prev.map((c) => (c.claim_id === row.claim_id ? { ...c, quantity: Number(row.quantity) } : c)),
+            )
+          } else if (payload.eventType === 'DELETE') {
+            const row = payload.old
+            setClaims((prev) => prev.filter((c) => c.claim_id !== row.claim_id))
+          }
+        },
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [itemIdsKey, names])
+
+  useEffect(() => {
+    const missing = [...new Set(claims.map((c) => c.user_id))].filter((id) => !(id in names))
+    if (missing.length === 0) return
+
+    let cancelled = false
+    supabase.rpc('usernames_for_ids', { ids: missing }).then(({ data }) => {
+      if (cancelled) return
+      const resolved = Object.fromEntries(
+        ((data ?? []) as { id: string; username: string | null }[]).map((row) => [row.id, row.username ?? 'someone']),
+      )
+      setNames((prev) => ({ ...prev, ...resolved }))
+      setClaims((prev) => prev.map((c) => (c.username ? c : { ...c, username: resolved[c.user_id] ?? c.username })))
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [claims, names])
+
   // the shell keeps its wishlists across navigations, so the header can be
   // drawn from memory immediately instead of waiting on a round trip
   useEffect(() => {
@@ -248,11 +340,11 @@ export default function WishlistDetail() {
     const filtered = aggregate
       ? items
       : items.filter((item) => {
-          if (tab === 'all') return true
-          if (tab === 'bought') return item.purchased
-          if (tab === 'reserved') return !item.purchased && isSpokenFor(item)
-          return !item.purchased && !isSpokenFor(item)
-        })
+        if (tab === 'all') return true
+        if (tab === 'bought') return item.purchased
+        if (tab === 'reserved') return !item.purchased && isSpokenFor(item)
+        return !item.purchased && !isSpokenFor(item)
+      })
     return sortWishes(filtered, sort)
   }, [items, tab, sort, aggregate, isSpokenFor])
 
