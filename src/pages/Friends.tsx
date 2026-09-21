@@ -102,6 +102,37 @@ export default function Friends() {
     load()
   }, [load, shell.dataVersion])
 
+  useEffect(() => {
+  if (!userId) return
+
+  const receiverChannel = supabase
+    .channel(`friend_requests-received-${userId}`)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'friend_requests', filter: `receiver_id=eq.${userId}` },
+      () => {
+        load()
+      },
+    )
+    .subscribe()
+
+  const senderChannel = supabase
+    .channel(`friend_requests-sent-${userId}`)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'friend_requests', filter: `sender_id=eq.${userId}` },
+      () => {
+        load()
+      },
+    )
+    .subscribe()
+
+  return () => {
+    supabase.removeChannel(receiverChannel)
+    supabase.removeChannel(senderChannel)
+  }
+}, [userId, load])
+
   // debounced as-you-type search -- waits for a pause in typing rather than
   // firing search_users on every keystroke
   useEffect(() => {

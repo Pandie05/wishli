@@ -117,6 +117,8 @@ export default function AppShell() {
         return
       }
 
+
+
       const [{ data: profile }, { data: rows }, { count }] = await Promise.all([
         supabase.from('users').select('username, avatar_url').eq('id', user.id).single(),
         // rls already scopes this to lists you own or are a member of
@@ -143,6 +145,30 @@ export default function AppShell() {
       cancelled = true
     }
   }, [dataVersion, navigate])
+
+  useEffect(() => {
+    if (!userId) return
+
+    const channel = supabase
+      .channel(`shell-notifications-${userId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
+        async () => {
+          const { count } = await supabase
+            .from('notifications')
+            .select('notification_id', { count: 'exact', head: true })
+            .eq('is_read', false)
+
+          setUnread(count ?? 0)
+        },
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [userId])
 
   // measure before paint so the pill is never seen in the wrong place. on a
   // route with no nav row of its own (a wishlist) there is nothing to measure,

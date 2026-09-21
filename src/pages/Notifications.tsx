@@ -84,6 +84,25 @@ export default function Notifications() {
     load()
   }, [load])
 
+  useEffect(() => {
+    if (!userId) return
+
+    const channel = supabase
+      .channel(`notifications-${userId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
+        () => {
+          load()
+        },
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [userId, load])
+
   async function loadMore() {
     if (loadingMore) return
     setLoadingMore(true)
