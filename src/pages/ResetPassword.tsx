@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import '../css/login.css'
+import '../css/reset-pasword.css'
 
 export default function ResetPassword() {
     const navigate = useNavigate()
