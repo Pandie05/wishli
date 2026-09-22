@@ -30,6 +30,20 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
+  async function handleForgotPassword() {
+    const trimmed = identifier.trim()
+    if (!trimmed || !trimmed.includes('@')) {
+      setError('Enter your email above, then click "Forgot password?"')
+      return
+    }
+
+    const { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    })
+
+    setError(error ? error.message : 'If an account exists for that email, a reset link is on its way.')
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (submitting) return
@@ -118,7 +132,7 @@ export default function Login() {
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
-
+        
         <label className="login-remember">
           <input
             type="checkbox"
@@ -127,6 +141,10 @@ export default function Login() {
           />
           Remember me
         </label>
+
+        <button type="button" className="login-forgot" onClick={handleForgotPassword}>
+          Forgot password?
+        </button>
 
         {error && (
           <p className="login-error" role="alert">
