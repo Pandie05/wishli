@@ -23,6 +23,7 @@ const Notifications = lazy(() => import('./pages/Notifications'))
 const Settings = lazy(() => import('./pages/Settings'))
 const PublicProfile = lazy(() => import('./pages/PublicProfile'))
 const SharedWishlist = lazy(() => import('./pages/SharedWishlist'))
+const ResetPassword = lazy(() => import('./pages/ResetPassword'))
 
 export default function App() {
   return (
@@ -51,6 +52,7 @@ export default function App() {
                 never make an account at all */}
             <Route path="/share/:token" element={<SharedWishlist />} />
             <Route path="/u/:username" element={<PublicProfile />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
 
             {/* /login and /signup share one route so <Auth> survives the
                 switch and can animate between them. Static paths above
