@@ -244,6 +244,15 @@ button.wl-fact:hover:not(:disabled) .wl-fact-value {
   margin-left: auto;
 }
 
+/* sits to the right of Sort, sharing its button styling */
+.wl-views {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding-left: 18px;
+  border-left: 1px solid var(--border);
+}
+
 .wl-tab,
 .wl-sort {
   padding: 0 0 3px;
@@ -308,9 +317,42 @@ button.wl-fact:hover:not(:disabled) .wl-fact-value {
 }
 
 .wl-card {
+  position: relative;
   min-width: 0;
   display: flex;
   flex-direction: column;
+}
+
+/* the whole card is the button that opens the wish -- a transparent layer
+   over it, so the product link and Edit can sit above and keep their clicks */
+.wl-card-hit {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+}
+
+.wl-card-hit:hover:not(:disabled) {
+  border-color: transparent;
+  background: none;
+}
+
+.wl-card-hit:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.wl-card:hover .wl-card-name {
+  color: var(--accent);
+}
+
+.wl-card-open,
+.wl-card-actions {
+  position: relative;
+  z-index: 2;
 }
 
 .wl-card-media {
@@ -320,6 +362,104 @@ button.wl-fact:hover:not(:disabled) .wl-fact-value {
   border-radius: 6px;
   overflow: hidden;
   background: var(--surface-sunken);
+}
+
+/* ---- flat view ---------------------------------------------------------
+   A grid of cards is the wrong shape for a list nobody has photographed:
+   four big empty picture frames per row. This turns each wish into a single
+   hairline row -- the same language the rest of the app already uses -- with
+   the picture demoted to a thumbnail. Everything is a restyle of the same
+   markup, so nothing has to render differently. */
+
+/* two classes deliberately: the responsive .wl-grid rules at the bottom of
+   this file come later in the source, so a single-class selector here loses
+   to them and the rows stay in columns */
+.wl-grid.wl-grid--flat {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  padding-top: 8px;
+}
+
+.wl-grid--flat .wl-card {
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.wl-grid--flat .wl-card-hit {
+  border-radius: 0;
+}
+
+.wl-grid--flat .wl-card-media {
+  order: 1;
+  width: 42px;
+  height: 42px;
+  aspect-ratio: auto;
+}
+
+.wl-grid--flat .wl-card-blank svg {
+  width: 17px;
+  height: 17px;
+}
+
+/* the product-link button is a hover affordance sized for a big picture; at
+   42px it would cover the thumbnail entirely */
+.wl-grid--flat .wl-card-open {
+  display: none;
+}
+
+.wl-grid--flat .wl-card-title {
+  order: 2;
+  flex: 1;
+  min-width: 0;
+  margin-top: 0;
+}
+
+.wl-grid--flat .wl-card-price {
+  margin-left: 0;
+}
+
+/* the note already says what the row is; repeating it under the name makes
+   every row two lines tall and undoes the point of the view */
+.wl-grid--flat .wl-card-note {
+  display: none;
+}
+
+/* out of the corner of the picture and into the row */
+.wl-grid--flat .wl-chip {
+  order: 3;
+  position: static;
+  flex: none;
+}
+
+/* The plain chip is built for sitting on a photo: a near-white pill with a
+   fixed dark text colour. In a row it needs both halves themed -- keeping the
+   fixed dark text on a themed surface left "3 of 4 left" as dark-on-dark and
+   effectively invisible in dark mode. Reserved and Bought carry their own
+   fill and text together, so they are left alone. */
+.wl-grid--flat .wl-chip:not(.wl-chip--reserved):not(.wl-chip--bought) {
+  background: var(--surface-sunken);
+  color: var(--label);
+}
+
+.wl-grid--flat .wl-card-actions {
+  order: 4;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+@media (max-width: 620px) {
+  /* the price sits under the name rather than squeezing it to nothing */
+  .wl-grid--flat .wl-card-title {
+    flex-wrap: wrap;
+    gap: 2px 10px;
+  }
+
+  .wl-grid--flat .wl-chip {
+    display: none;
+  }
 }
 
 .wl-card-media img {
@@ -346,6 +486,12 @@ button.wl-fact:hover:not(:disabled) .wl-fact-value {
   position: absolute;
   top: 9px;
   left: 9px;
+  /* the chip is a sibling of the picture now (so the flat view can put it in
+     the row), and the picture is positioned too -- without this it paints on
+     top and the status vanishes. pointer-events keeps the card-wide click
+     working underneath it. */
+  z-index: 2;
+  pointer-events: none;
   padding: 4px 8px;
   border-radius: 4px;
   background: rgba(255, 255, 255, 0.92);

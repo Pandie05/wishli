@@ -213,6 +213,14 @@
   margin-left: auto;
 }
 
+/* divides the sort/scope buttons from the layout toggle */
+.dash-filters-sep {
+  width: 1px;
+  align-self: stretch;
+  min-height: 12px;
+  background: var(--border);
+}
+
 .dash-filters-label {
   font-size: 0.625rem;
   font-weight: 600;
@@ -258,6 +266,93 @@
 .dash-card {
   position: relative;
   min-width: 0;
+}
+
+/* ---- flat view ---------------------------------------------------------
+   Two big cover panels per row is a lot of space for lists that mostly have
+   no cover image. This turns each wishlist into one hairline row -- cover
+   demoted to a thumbnail, name, occasion, spend and item count on one line.
+   Same markup throughout, only restyled.
+
+   Two classes on the grid selector deliberately: the responsive .dash-grid
+   rule further down this file comes later in the source, so a single-class
+   selector would lose to it and the rows would stay in columns. */
+
+.dash-grid.dash-grid--flat {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+
+.dash-grid--flat .dash-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.dash-grid--flat .dash-card-media {
+  order: 1;
+  flex: none;
+  width: 56px;
+  height: 42px;
+  aspect-ratio: auto;
+}
+
+/* the ordinal is sized for a big cover and the ⋯ button would sit on top of
+   a 56px thumbnail; both belong to the card view */
+.dash-grid--flat .dash-card-num,
+.dash-grid--flat .dash-card-menu {
+  display: none;
+}
+
+.dash-grid--flat .dash-card-title {
+  order: 2;
+  flex: 1;
+  min-width: 0;
+  margin-top: 0;
+}
+
+.dash-grid--flat .dash-card-occasion {
+  order: 3;
+  flex: none;
+  margin: 0;
+}
+
+.dash-grid--flat .dash-card-match {
+  order: 4;
+  flex: none;
+  margin: 0;
+  max-width: 24ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash-grid--flat .dash-card-meta {
+  order: 5;
+  flex: none;
+  margin-top: 0;
+}
+
+/* the row keeps only the item count. The stacked face dots are sized for the
+   card's meta line and collapse to nothing in a flex row, and the "2 friends"
+   wording is detail this view is deliberately shedding. */
+.dash-grid--flat .dash-card-meta span:not(.dash-card-meta-right) {
+  display: none;
+}
+
+.dash-grid--flat .dash-card-meta-right {
+  margin-left: 0;
+}
+
+@media (max-width: 860px) {
+  /* keep the name and price; everything else is detail the row can lose */
+  .dash-grid--flat .dash-card-occasion,
+  .dash-grid--flat .dash-card-match,
+  .dash-grid--flat .dash-card-meta {
+    display: none;
+  }
 }
 
 /* the whole card opens the wishlist, not just its name. the title's link

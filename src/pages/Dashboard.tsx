@@ -40,6 +40,11 @@ type ActivityRow = {
 }
 
 type SortMode = 'recent' | 'az' | 'value' | 'upcoming'
+type ViewMode = 'grid' | 'flat'
+
+/** separate from the wishlist page's key -- the two are different shapes and
+ *  wanting rows on one does not mean wanting rows on the other */
+const VIEW_KEY = 'wishli-list-view'
 
 /** "$1,349" / "$12.50" — whole numbers stay whole, the mockup shows no .00 */
 function ordinal(index: number): string {
@@ -119,6 +124,23 @@ export default function Dashboard() {
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState<SortMode>('recent')
   const [includeShared, setIncludeShared] = useState(false)
+  // remembered per device, same as the wishlist page's own toggle
+  const [view, setView] = useState<ViewMode>(() => {
+    try {
+      return localStorage.getItem(VIEW_KEY) === 'flat' ? 'flat' : 'grid'
+    } catch {
+      return 'grid'
+    }
+  })
+
+  function chooseView(next: ViewMode) {
+    setView(next)
+    try {
+      localStorage.setItem(VIEW_KEY, next)
+    } catch {
+      // private browsing throws on write; the choice still applies this visit
+    }
+  }
 
   const [editing, setEditing] = useState<WishlistRow | null>(null)
   // the wishlist the delete confirmation is asking about
@@ -485,10 +507,29 @@ export default function Dashboard() {
               >
                 View all
               </button>
+
+              <span className="dash-filters-sep" aria-hidden="true" />
+
+              {(
+                [
+                  ['grid', 'Cards'],
+                  ['flat', 'List'],
+                ] as const
+              ).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={view === key ? 'dash-filter dash-filter--on' : 'dash-filter'}
+                  aria-pressed={view === key}
+                  onClick={() => chooseView(key)}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
           </div>
 
-          <ul className="dash-grid">
+          <ul className={view === 'flat' ? 'dash-grid dash-grid--flat' : 'dash-grid'}>
             {visible.map((w, index) => {
               const cover = w.item_img ?? covers[w.wishlist_id] ?? null
               const spent = totals[w.wishlist_id] ?? 0
