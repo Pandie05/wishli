@@ -1,0 +1,75 @@
+/* Loading placeholders.
+ *
+ * The pages used to show an em dash where a number was coming and an empty
+ * grid where cards were, which reads as "there is nothing here" rather than
+ * "this is still arriving" -- a new account and a slow request looked
+ * identical. These block out the shape of the real content instead, so the
+ * layout does not jump when it lands.
+ *
+ * Built from the shared tokens, so they follow dark mode with everything
+ * else, and the sweep is suppressed for anyone who has asked for less
+ * motion -- the blocks still show, they just sit still. */
+
+.sk {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+}
+
+.sk::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, var(--skeleton-sheen), transparent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .sk::after {
+    animation: sk-sweep 1.4s ease-in-out infinite;
+  }
+}
+
+@keyframes sk-sweep {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* a line of text waiting to arrive; width is set inline per line so a block
+   of them reads as a paragraph rather than a stack of identical bars */
+.sk-line {
+  display: block;
+  height: 11px;
+  border-radius: 4px;
+}
+
+.sk-line--lg {
+  height: 15px;
+}
+
+.sk-line--xl {
+  height: 30px;
+  border-radius: 6px;
+}
+
+/* stands in for a card's picture, holding the same aspect the real one will */
+.sk-media {
+  display: block;
+  width: 100%;
+  border-radius: 6px;
+}
+
+.sk-media--wide {
+  aspect-ratio: 3 / 2;
+}
+
+.sk-media--tall {
+  aspect-ratio: 1 / 1.05;
+}
+
+.sk-avatar {
+  display: block;
+  border-radius: 50%;
+}

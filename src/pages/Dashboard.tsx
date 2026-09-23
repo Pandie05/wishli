@@ -11,6 +11,7 @@ import ConfirmModal from '../components/ConfirmModal'
 import Spinner from '../components/Spinner'
 import WishlistFormModal from '../components/WishlistFormModal'
 import type { WishlistRow } from '../components/WishlistFormModal'
+import '../css/skeleton.css'
 import '../css/dashboard.css'
 
 type ItemRow = {
@@ -369,7 +370,8 @@ export default function Dashboard() {
 
   // the page renders immediately now, so a figure must not flash a zero on
   // its way to the real number -- it shows a rule until the first load lands
-  const stat = (value: ReactNode) => (loading ? <i className="dash-stat-idle">—</i> : value)
+  const stat = (value: ReactNode) =>
+    loading ? <span className="sk sk-line sk-line--xl" style={{ width: '3.5ch' }} /> : value
 
   const now = new Date()
   const stamp = now
@@ -592,6 +594,22 @@ export default function Dashboard() {
               )
             })}
 
+            {/* only before anything has arrived: the shell hands over its own
+                copy of the wishlists on a return visit, and replacing those
+                with placeholders would be a step backwards */}
+            {loading &&
+              visible.length === 0 &&
+              Array.from({ length: 4 }, (_, i) => (
+                <li key={`sk-${i}`} className="dash-card" aria-hidden="true">
+                  <span className="sk sk-media sk-media--wide" />
+                  <div className="dash-card-title">
+                    <span className="sk sk-line sk-line--lg" style={{ width: '58%' }} />
+                    <span className="sk sk-line" style={{ width: '18%' }} />
+                  </div>
+                  <span className="sk sk-line" style={{ width: '34%', marginTop: 8 }} />
+                </li>
+              ))}
+
             {!loading && visible.length === 0 && (
               <li className="dash-empty">
                 {query.trim()
@@ -630,6 +648,15 @@ export default function Dashboard() {
                   </button>
                 </li>
               ))}
+
+              {loading &&
+                activity.length === 0 &&
+                Array.from({ length: 3 }, (_, i) => (
+                  <li key={`sk-act-${i}`} className="dash-activity" aria-hidden="true">
+                    <span className="sk sk-avatar" style={{ width: 26, height: 26, flex: 'none' }} />
+                    <span className="sk sk-line" style={{ width: `${72 - i * 12}%` }} />
+                  </li>
+                ))}
 
               {!loading && activity.length === 0 && (
                 <li className="dash-rail-empty">nothing yet</li>

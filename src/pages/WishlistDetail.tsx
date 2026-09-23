@@ -15,6 +15,7 @@ import ShareModal from '../components/ShareModal'
 import WishDetailModal from '../components/WishDetailModal'
 import WishlistFormModal from '../components/WishlistFormModal'
 import type { WishlistRow } from '../components/WishlistFormModal'
+import '../css/skeleton.css'
 import '../css/wishlist-detail.css'
 
 type Tab = 'all' | 'available' | 'reserved' | 'bought'
@@ -447,14 +448,24 @@ export default function WishlistDetail() {
               <div className="wl-fact">
                 <span className="wl-fact-label">Total cost</span>
                 <span className="wl-fact-value">
-                  {loading ? '—' : money(spent)}
+                  {loading ? (
+                    <span className="sk sk-line sk-line--xl" style={{ width: '4ch' }} />
+                  ) : (
+                    money(spent)
+                  )}
                   {wishlist?.budget != null && <small>/ {money(wishlist.budget)}</small>}
                 </span>
               </div>
 
               <div className="wl-fact">
                 <span className="wl-fact-label">Items</span>
-                <span className="wl-fact-value">{loading ? '—' : items.length}</span>
+                <span className="wl-fact-value">
+                  {loading ? (
+                    <span className="sk sk-line sk-line--xl" style={{ width: '2ch' }} />
+                  ) : (
+                    items.length
+                  )}
+                </span>
               </div>
 
               <button type="button" className="wl-fact" onClick={() => setShowPeople(true)}>
@@ -646,6 +657,18 @@ export default function WishlistDetail() {
             </div>
           </li>
         ))}
+
+        {loading &&
+          visible.length === 0 &&
+          Array.from({ length: 8 }, (_, i) => (
+            <li key={`sk-${i}`} className="wl-card" aria-hidden="true">
+              <span className="sk sk-media sk-media--tall" />
+              <div className="wl-card-title">
+                <span className="sk sk-line" style={{ width: '62%' }} />
+                <span className="sk sk-line" style={{ width: '20%' }} />
+              </div>
+            </li>
+          ))}
 
         {!loading && visible.length === 0 && (
           <li className="wl-empty">
