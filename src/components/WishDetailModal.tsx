@@ -7,6 +7,8 @@ import Modal from './Modal'
 import MoneyInput from './MoneyInput'
 import { PRIORITY_LABELS } from './PriorityPicker'
 import Spinner from './Spinner'
+// delete this line and src/css/wish-detail.css to revert the modal refresh
+import '../css/wish-detail.css'
 
 type Props = {
   item: WishItem | null

@@ -1,0 +1,146 @@
+/* ============================================================================
+   Wish detail modal — refresh.
+ *
+ * TO REVERT: delete this file and its import at the top of
+ * src/components/WishDetailModal.tsx. Nothing else references it, and the
+ * base styling in wishlist-detail.css is untouched, so the modal goes back to
+ * exactly how it looked before.
+ *
+ * Deliberately CSS only, no markup changes, for that reason.
+ *
+ * The problem being fixed: a wish with no photo, no price and no note left
+ * the modal almost empty -- a title, a rule, a long gap, then a lone chip
+ * floating above two plain buttons. Most wishes are added in a hurry with
+ * just a name, so that is the common case, not the edge case.
+ * ========================================================================= */
+
+/* ---- stand-in for a missing photo ---------------------------------------
+   :has() lets this stay CSS-only -- the band only appears when there is no
+   .wish-detail-image to be found. Same gradient family as the card covers,
+   so an image-less wish still reads as part of the same app. */
+.wish-detail:not(:has(.wish-detail-image))::before {
+  content: '';
+  display: block;
+  height: 104px;
+  border-radius: var(--radius-md);
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-opacity='0.5' stroke-width='1.3'%3E%3Crect x='3' y='4.5' width='18' height='15' rx='2'/%3E%3Ccircle cx='8.5' cy='10' r='1.6'/%3E%3Cpath d='m4 17 5-4.5 4 3.5 3-2.5 4 3.5' stroke-linejoin='round'/%3E%3C/svg%3E")
+      center / 30px no-repeat,
+    linear-gradient(150deg, var(--navy), var(--accent));
+  opacity: 0.85;
+}
+
+.wish-detail-image {
+  max-height: 200px;
+}
+
+/* ---- facts line ---------------------------------------------------------
+   With no price, no priority and no link this element still occupied a row
+   plus the flex gap either side of it -- most of the empty space in the
+   middle of the modal was this. */
+.wish-detail-facts:empty {
+  display: none;
+}
+
+.wish-detail-price {
+  font-size: 1.5rem;
+}
+
+/* ---- status -------------------------------------------------------------
+   The chip was the only thing in its row, floating with nothing to sit
+   against. Giving it a band of its own makes it read as a status line. */
+.wish-detail-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+}
+
+.wish-detail-status::before {
+  content: 'Status';
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.wish-detail-status .wl-chip {
+  margin-left: auto;
+  background: var(--surface);
+}
+
+/* Reserved and Bought bring their own fill and matching text colour; the
+   neutral override above must not flatten them (it did, in dark mode). */
+.wish-detail-status .wl-chip--reserved {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.wish-detail-status .wl-chip--bought {
+  background: var(--navy);
+  color: #fff;
+}
+
+/* ---- actions ------------------------------------------------------------ */
+
+.wish-detail-buttons {
+  flex-wrap: wrap;
+}
+
+.wish-detail-buttons button {
+  padding: 9px 16px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* the reserve/release control is the main thing anyone opens this for */
+.wish-detail-buttons button:first-of-type {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.wish-detail-buttons button:first-of-type:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--accent-hover);
+}
+
+/* ---- pledges ------------------------------------------------------------
+   The heading used to sit above nothing at all when no one had pledged. */
+.wish-detail-pledges {
+  padding: 12px 13px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+}
+
+.wish-detail-pledges .field-label {
+  color: var(--label);
+}
+
+.wish-detail-pledge-form input {
+  background: var(--surface);
+}
+
+.wish-detail-contribs {
+  gap: 6px;
+}
+
+/* ---- footer -------------------------------------------------------------
+   Delete sat between Close and Edit wish in the same weight as both, which
+   is a lot of prominence for the destructive one. It keeps its place so the
+   muscle memory holds, but stops competing. */
+.modal-foot .modal-danger {
+  margin-right: auto;
+  border-color: transparent;
+  background: none;
+  color: var(--muted);
+}
+
+.modal-foot .modal-danger:hover:not(:disabled) {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+  color: var(--danger);
+}

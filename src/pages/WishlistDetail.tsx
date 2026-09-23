@@ -20,6 +20,9 @@ import '../css/wishlist-detail.css'
 
 type Tab = 'all' | 'available' | 'reserved' | 'bought'
 type SortMode = 'priority' | 'price' | 'added'
+type ViewMode = 'grid' | 'flat'
+
+const VIEW_KEY = 'wishli-wish-view'
 
 function sortWishes(items: WishItem[], mode: SortMode): WishItem[] {
   const sorted = [...items]
@@ -61,6 +64,24 @@ export default function WishlistDetail() {
 
   const [tab, setTab] = useState<Tab>('all')
   const [sort, setSort] = useState<SortMode>('priority')
+  // remembered per device: a list of things you have not photographed reads
+  // much better as rows than as a grid of empty picture frames
+  const [view, setView] = useState<ViewMode>(() => {
+    try {
+      return localStorage.getItem(VIEW_KEY) === 'flat' ? 'flat' : 'grid'
+    } catch {
+      return 'grid'
+    }
+  })
+
+  function chooseView(next: ViewMode) {
+    setView(next)
+    try {
+      localStorage.setItem(VIEW_KEY, next)
+    } catch {
+      // private browsing throws on write; the choice still applies this visit
+    }
+  }
 
   const [viewing, setViewing] = useState<WishItem | null>(null)
   const [editingWish, setEditingWish] = useState<WishItem | null>(null)
@@ -583,13 +604,64 @@ export default function WishlistDetail() {
             </button>
           ))}
         </div>
+
+        <div className="wl-views" role="group" aria-label="Layout">
+          {(
+            [
+              ['grid', 'Cards'],
+              ['flat', 'List'],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              className={view === key ? 'wl-sort wl-sort--on' : 'wl-sort'}
+              aria-pressed={view === key}
+              onClick={() => chooseView(key)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {error && <p className="wl-error">{error}</p>}
 
-      <ul className="wl-grid">
+      <ul className={view === 'flat' ? 'wl-grid wl-grid--flat' : 'wl-grid'}>
         {visible.map((item) => (
           <li key={item.item_id} className="wl-card">
+            {/* the whole card opens the wish. a transparent layer rather than
+                wrapping everything in a button, so the product link and Edit
+                can sit above it and still take their own clicks */}
+            <button
+              type="button"
+              className="wl-card-hit"
+              onClick={() => setViewing(item)}
+              aria-label={`Open ${item.name}`}
+            />
+
+            {/* a child of the card, not of the picture: in the flat view it
+                stops being an overlay and sits inline in the row instead */}
+            {!aggregate && (
+              <span
+                className={
+                  item.purchased
+                    ? 'wl-chip wl-chip--bought'
+                    : isSpokenFor(item)
+                      ? 'wl-chip wl-chip--reserved'
+                      : 'wl-chip'
+                }
+              >
+                {item.purchased
+                  ? 'Bought'
+                  : isSpokenFor(item)
+                    ? 'Reserved'
+                    : item.quantity > 1
+                      ? `${item.quantity - (claimedByItem[item.item_id] ?? 0)} of ${item.quantity} left`
+                      : 'Available'}
+              </span>
+            )}
+
             <div className="wl-card-media">
               {item.image_url ? (
                 <img src={item.image_url} alt="" loading="lazy" />
@@ -600,26 +672,6 @@ export default function WishlistDetail() {
                     <circle cx="8.5" cy="10" r="1.6" />
                     <path d="m4 17 5-4.5 4 3.5 3-2.5 4 3.5" strokeLinejoin="round" />
                   </svg>
-                </span>
-              )}
-
-              {!aggregate && (
-                <span
-                  className={
-                    item.purchased
-                      ? 'wl-chip wl-chip--bought'
-                      : isSpokenFor(item)
-                        ? 'wl-chip wl-chip--reserved'
-                        : 'wl-chip'
-                  }
-                >
-                  {item.purchased
-                    ? 'Bought'
-                    : isSpokenFor(item)
-                      ? 'Reserved'
-                      : item.quantity > 1
-                        ? `${item.quantity - (claimedByItem[item.item_id] ?? 0)} of ${item.quantity} left`
-                        : 'Available'}
                 </span>
               )}
 
@@ -645,16 +697,13 @@ export default function WishlistDetail() {
 
             {item.notes && <p className="wl-card-note">{item.notes}</p>}
 
-            <div className="wl-card-actions">
-              <button type="button" onClick={() => setViewing(item)}>
-                View
-              </button>
-              {canEditItem(item) && (
+            {canEditItem(item) && (
+              <div className="wl-card-actions">
                 <button type="button" onClick={() => setEditingWish(item)}>
                   Edit
                 </button>
-              )}
-            </div>
+              </div>
+            )}
           </li>
         ))}
 
