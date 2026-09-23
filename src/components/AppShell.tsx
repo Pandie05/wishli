@@ -15,7 +15,20 @@ type ShellApi = {
   wishlists: WishlistRow[]
   /** bumped whenever anything is created or changed; pages reload on it */
   dataVersion: number
+  /**
+   * Something the nav itself shows has changed -- a wishlist added, renamed
+   * or deleted, a notification read, the profile edited. Refetches the shell
+   * as well as telling the pages to reload.
+   */
   refresh: () => void
+  /**
+   * Something inside a wishlist changed -- an item, a claim, a pledge. The
+   * pages resync, but the nav's own data (your name, your list of wishlists,
+   * the unread badge) cannot have changed, so it is left alone. Using this
+   * instead of refresh() is the difference between three wasted queries per
+   * interaction and none.
+   */
+  refreshItems: () => void
   openAddWish: (options?: { url?: string; wishlistId?: string }) => void
   openAddWishlist: () => void
 }
@@ -85,6 +98,9 @@ export default function AppShell() {
   const [unread, setUnread] = useState(0)
   const [wishlists, setWishlists] = useState<WishlistRow[]>([])
   const [dataVersion, setDataVersion] = useState(0)
+  // the shell's own fetch watches this one, so an item-level change can tell
+  // the pages to resync without dragging the nav's three queries along
+  const [shellVersion, setShellVersion] = useState(0)
 
   const [showAddWish, setShowAddWish] = useState(false)
   const [presetUrl, setPresetUrl] = useState('')
@@ -100,7 +116,12 @@ export default function AppShell() {
   const [pill, setPill] = useState<{ top: number; height: number } | null>(null)
   const [pillReady, setPillReady] = useState(false)
 
-  const refresh = useCallback(() => setDataVersion((n) => n + 1), [])
+  const refresh = useCallback(() => {
+    setDataVersion((n) => n + 1)
+    setShellVersion((n) => n + 1)
+  }, [])
+
+  const refreshItems = useCallback(() => setDataVersion((n) => n + 1), [])
 
   useEffect(() => {
     let cancelled = false
@@ -144,7 +165,7 @@ export default function AppShell() {
     return () => {
       cancelled = true
     }
-  }, [dataVersion, navigate])
+  }, [shellVersion, navigate])
 
   useEffect(() => {
     if (!userId) return
@@ -216,6 +237,7 @@ export default function AppShell() {
     userId,
     wishlists,
     dataVersion,
+    refreshItems,
     refresh,
     openAddWish: (options) => {
       setPresetUrl(options?.url ?? '')

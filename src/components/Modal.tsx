@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import '../css/modal.css'
 
 /** Fallback if --modal-motion cannot be read for any reason. */
-const FALLBACK_MS = 180
+const FALLBACK_MS = 140
 
 /** Everything inside the panel a Tab can land on. */
 const FOCUSABLE =

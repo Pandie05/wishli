@@ -40,8 +40,11 @@
   /* the highlight that sweeps across a loading placeholder (skeleton.css) */
   --skeleton-sheen: rgba(255, 255, 255, 0.72);
 
-  /* one duration for both halves of the modal open/close motion */
-  --modal-motion: 180ms;
+  /* one duration for both halves of the modal open/close motion. 140ms is
+     about the shortest that still reads as the panel arriving rather than
+     snapping; the old 180ms was enough to feel like a wait before the form
+     was usable. Modal.tsx reads this value, so the unmount follows it. */
+  --modal-motion: 140ms;
   --shadow-card: 0 1px 2px rgba(16, 26, 51, 0.04), 0 8px 24px -16px rgba(16, 26, 51, 0.12);
   --shadow-card-hover: 0 4px 10px rgba(16, 26, 51, 0.06), 0 16px 32px -16px rgba(16, 26, 51, 0.18);
   --shadow-pop: 0 12px 32px -12px rgba(16, 26, 51, 0.28), 0 2px 6px rgba(16, 26, 51, 0.08);
@@ -125,7 +128,10 @@ button {
   background: var(--surface-raised);
   color: var(--label);
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+  /* 100ms, not 150: a hover is feedback that the pointer landed, and above
+     roughly 120ms that stops reading as instant and starts reading as lag.
+     The press (transform) stays quicker still. */
+  transition: background 0.1s ease, border-color 0.1s ease, transform 0.05s ease;
 }
 
 button:hover:not(:disabled) {

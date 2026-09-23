@@ -387,7 +387,8 @@ export default function Dashboard() {
         : `Saved to ${target.name}`,
       ok: true,
     })
-    shell.refresh()
+    // a wish was added, which the nav does not list
+    shell.refreshItems()
   }
 
   // the page renders immediately now, so a figure must not flash a zero on

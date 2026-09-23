@@ -211,6 +211,51 @@ export default function WishlistDetail() {
     )
   }, [userId, wishlistId])
 
+  /**
+   * Reserving, pledging or marking something bought can only have changed
+   * these three tables. The full load() re-reads the wishlist, its members
+   * and your friend list as well, and bumping the shell's version on top of
+   * that made the nav refetch your profile, your wishlists and the unread
+   * count -- around eleven queries to record one claim.
+   *
+   * Usernames are carried over from what is already resolved; a claimant who
+   * is new to the page is picked up by the top-up effect below, which only
+   * fires when there is actually someone missing.
+   */
+  const reloadItemState = useCallback(async () => {
+    const [{ data: itemRows }, { data: contribRows }, { data: claimRows }] = await Promise.all([
+      supabase.from('items').select(WISH_COLUMNS).eq('wishlist_id', wishlistId),
+      supabase
+        .from('item_contributions')
+        .select('contribution_id, item_id, user_id, amount, items!inner(wishlist_id)')
+        .eq('items.wishlist_id', wishlistId),
+      supabase
+        .from('item_claims')
+        .select('claim_id, item_id, user_id, quantity, items!inner(wishlist_id)')
+        .eq('items.wishlist_id', wishlistId),
+    ])
+
+    setItems((itemRows ?? []) as WishItem[])
+    setContributions(
+      (contribRows ?? []).map((c) => ({
+        contribution_id: c.contribution_id,
+        item_id: c.item_id,
+        user_id: c.user_id,
+        amount: Number(c.amount),
+        username: names[c.user_id] ?? '',
+      })),
+    )
+    setClaims(
+      (claimRows ?? []).map((c) => ({
+        claim_id: c.claim_id,
+        item_id: c.item_id,
+        user_id: c.user_id,
+        quantity: Number(c.quantity),
+        username: names[c.user_id] ?? '',
+      })),
+    )
+  }, [wishlistId, names])
+
   useEffect(() => {
     load()
   }, [load, shell.dataVersion])
@@ -429,7 +474,9 @@ export default function WishlistDetail() {
 
     setDeletingWish(null)
     setViewing(null)
-    shell.refresh()
+    // an item went, which the nav does not show -- the pages resync, the
+    // shell's own three queries do not need to run
+    shell.refreshItems()
   }
 
   const spokenFor = counts.reserved + counts.bought
@@ -737,7 +784,7 @@ export default function WishlistDetail() {
         canEdit={viewing ? canEditItem(viewing) : false}
         isOwner={isOwner}
         onClose={() => setViewing(null)}
-        onChanged={shell.refresh}
+        onChanged={reloadItemState}
         onEdit={() => {
           setEditingWish(viewing)
           setViewing(null)
@@ -758,7 +805,8 @@ export default function WishlistDetail() {
         onNeedWishlist={() => setEditingWish(null)}
         onSaved={() => {
           setEditingWish(null)
-          shell.refresh()
+          // an item changed, not the nav's own data
+          shell.refreshItems()
         }}
       />
 
